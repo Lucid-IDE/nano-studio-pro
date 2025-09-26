@@ -1,14 +1,17 @@
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon } from "lucide-react";
+import { LCDOverlay } from "./LCDOverlay";
 
 interface CanvasProps {
   showGrid: boolean;
   zoomLevel: number;
   activeTool: string;
+  showOverlay?: boolean;
+  overlayMode?: string;
 }
 
-export const Canvas = ({ showGrid, zoomLevel, activeTool }: CanvasProps) => {
+export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, overlayMode = "grid focus" }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasImage, setHasImage] = useState(false);
 
@@ -143,6 +146,9 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool }: CanvasProps) => {
           </div>
         </div>
       )}
+
+      {/* LCD Overlay */}
+      <LCDOverlay showOverlay={showOverlay} overlayMode={overlayMode} />
 
       {/* Tool cursor indicator */}
       <div className="absolute top-4 left-4 bg-surface/80 backdrop-blur-sm rounded px-3 py-1 text-sm text-foreground">

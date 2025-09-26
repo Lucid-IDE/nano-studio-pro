@@ -12,14 +12,21 @@ import {
   Timer,
   Focus,
   Wifi,
-  Battery
+  Battery,
+  Download,
+  Layers3,
+  Undo2,
+  Redo2,
+  Save
 } from "lucide-react";
 
 interface DSLRCameraBodyProps {
   children: React.ReactNode;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
 }
 
-export const DSLRCameraBody = ({ children }: DSLRCameraBodyProps) => {
+export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = () => {} }: DSLRCameraBodyProps) => {
   const [mode, setMode] = useState("M");
   const [focusMode, setFocusMode] = useState("AF");
 
@@ -89,11 +96,67 @@ export const DSLRCameraBody = ({ children }: DSLRCameraBodyProps) => {
             </div>
           </div>
 
-          {/* Center Brand Area */}
-          <div className="flex-1 flex justify-center">
+          {/* Center Navigation & Controls - Integrated into Camera Body */}
+          <div className="flex-1 flex flex-col items-center space-y-3 max-w-4xl mx-4">
+            {/* Brand Area */}
             <div className="bg-gradient-to-r from-camera-metal/20 via-camera-metal/30 to-camera-metal/20 px-6 py-2 rounded-lg shadow-3d-inset border border-camera-metal/40">
-              <div className="text-camera-accent font-bold text-lg tracking-wider">NANO BANANA D6</div>
+              <div className="text-camera-accent font-bold text-lg tracking-wider" style={{ fontFamily: 'serif' }}>NANO BANANA D6</div>
               <div className="text-camera-metal text-xs text-center">Professional AI Editor</div>
+            </div>
+
+            {/* Navigation Tabs - Camera Style */}
+            <div className="flex items-center space-x-1 bg-gradient-to-r from-camera-metal/10 via-camera-metal/20 to-camera-metal/10 px-4 py-2 rounded-xl shadow-3d-inset border border-camera-metal/40">
+              {[
+                { id: "editor", name: "MAIN", icon: Camera },
+                { id: "composer", name: "COMPOSER", icon: Layers3 },
+                { id: "settings", name: "SETTINGS", icon: Settings2 },
+                { id: "preview", name: "EXPORT", icon: Download },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <Button
+                    key={tab.id}
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 px-3 text-xs font-medium bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 ${
+                      activeTab === tab.id 
+                        ? "text-camera-accent shadow-3d-inset" 
+                        : "text-camera-metal hover:text-foreground"
+                    }`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <Icon className="h-3 w-3 mr-1" />
+                    {tab.name}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Global Controls */}
+            <div className="flex items-center space-x-1">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
+                <Undo2 className="h-4 w-4 text-camera-metal" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
+                <Redo2 className="h-4 w-4 text-camera-metal" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
+                <Save className="h-4 w-4 text-camera-metal" />
+              </Button>
+              
+              <div className="w-px h-8 bg-camera-metal/40 mx-2"></div>
+              
+              {/* API Status */}
+              <div className="flex items-center space-x-2 bg-gradient-to-r from-camera-metal/10 to-camera-metal/5 px-3 py-1 rounded-full border border-camera-metal/30">
+                <Zap className="h-3 w-3 text-success" />
+                <span className="text-xs text-camera-metal font-medium">15/15</span>
+              </div>
+              
+              {/* Generate Button */}
+              <Button size="sm" className="h-8 px-4 bg-gradient-to-r from-primary to-accent hover:from-primary-glow hover:to-accent/80 text-xs font-medium">
+                <Zap className="h-3 w-3 mr-1" />
+                GENERATE
+              </Button>
             </div>
           </div>
 
