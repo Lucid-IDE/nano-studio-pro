@@ -69,11 +69,19 @@ All colors MUST be HSL. DSLR-inspired professional interface.
     --gradient-ai: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
     --gradient-camera: linear-gradient(135deg, hsl(var(--camera-metal)), hsl(var(--camera-accent)));
     --gradient-canvas: radial-gradient(circle at center, hsl(var(--canvas-bg)), hsl(var(--background)));
+    --gradient-camera-body: linear-gradient(145deg, hsl(220 8% 25%), hsl(220 6% 15%), hsl(220 8% 35%));
+    --gradient-camera-grip: linear-gradient(180deg, hsl(220 5% 20%), hsl(220 8% 10%), hsl(220 6% 25%));
+    --gradient-button-3d: linear-gradient(145deg, hsl(220 8% 45%), hsl(220 6% 25%), hsl(220 4% 15%));
+    --gradient-dial-3d: radial-gradient(circle at 30% 30%, hsl(220 10% 50%), hsl(220 8% 30%), hsl(220 6% 15%));
     
     /* Shadows */
     --shadow-panel: 0 4px 24px -2px hsl(220 13% 4% / 0.5);
     --shadow-tool: 0 2px 12px -1px hsl(220 13% 4% / 0.3);
     --shadow-glow: 0 0 20px hsl(var(--primary) / 0.4);
+    --shadow-3d-button: inset 0 2px 4px hsl(220 10% 60% / 0.3), inset 0 -2px 4px hsl(220 8% 5% / 0.8), 0 1px 2px hsl(220 8% 5% / 0.5);
+    --shadow-3d-dial: inset 0 3px 6px hsl(220 10% 60% / 0.4), inset 0 -3px 6px hsl(220 8% 5% / 0.9), 0 2px 4px hsl(220 8% 5% / 0.6);
+    --shadow-3d-inset: inset 0 2px 4px hsl(220 8% 5% / 0.8), inset 0 -1px 2px hsl(220 10% 40% / 0.3);
+    --shadow-camera-body: 0 8px 32px -4px hsl(220 13% 4% / 0.8), inset 0 1px 0px hsl(220 10% 40% / 0.2);
     
     /* Animation & Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
