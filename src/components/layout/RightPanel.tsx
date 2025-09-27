@@ -17,14 +17,39 @@ import {
   Grid3X3,
   RotateCw,
   Maximize2,
-  Settings2
+  Settings2,
+  Box,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 
 interface RightPanelProps {
+  zoomLevel: number;
+  onZoomChange: (level: number) => void;
+  showGrid: boolean;
+  onGridToggle: (show: boolean) => void;
+  showOverlay: boolean;
+  onOverlayToggle: (show: boolean) => void;
+  overlayMode: string;
+  onOverlayModeChange: (mode: string) => void;
+  show3DCube: boolean;
+  onShow3DCubeToggle: (show: boolean) => void;
   onSettingChange?: (setting: string, value: any) => void;
 }
 
-export const RightPanel = ({ onSettingChange }: RightPanelProps) => {
+export const RightPanel = ({ 
+  zoomLevel,
+  onZoomChange,
+  showGrid,
+  onGridToggle,
+  showOverlay,
+  onOverlayToggle,
+  overlayMode,
+  onOverlayModeChange,
+  show3DCube,
+  onShow3DCubeToggle,
+  onSettingChange 
+}: RightPanelProps) => {
   const [activePanel, setActivePanel] = useState("camera");
   
   // Camera Settings
@@ -47,17 +72,12 @@ export const RightPanel = ({ onSettingChange }: RightPanelProps) => {
   const [zoom, setZoom] = useState([100]);
   const [rotation, setRotation] = useState([0]);
 
-  // Overlay Settings
-  const [showGrid, setShowGrid] = useState(true);
-  const [showFocus, setShowFocus] = useState(true);
-  const [showMovement, setShowMovement] = useState(false);
-  const [showCharacter, setShowCharacter] = useState(false);
-
   const panelTabs = [
     { id: "camera", icon: Camera, name: "Camera", color: "text-primary" },
     { id: "color", icon: Palette, name: "Color", color: "text-accent" },
     { id: "movement", icon: Move3D, name: "Movement", color: "text-success" },
     { id: "overlay", icon: Eye, name: "Overlay", color: "text-warning" },
+    { id: "3d", icon: Box, name: "3D Guide", color: "text-camera-accent" },
     { id: "layers", icon: Layers3, name: "Layers", color: "text-camera-accent" },
     { id: "advanced", icon: Settings2, name: "Advanced", color: "text-muted-foreground" },
   ];
@@ -353,87 +373,133 @@ export const RightPanel = ({ onSettingChange }: RightPanelProps) => {
 
   const renderOverlayControls = () => (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <Button
-          variant={showGrid ? "default" : "outline"}
-          size="sm"
-          className="w-full justify-start bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-          onClick={() => setShowGrid(!showGrid)}
-        >
-          <Grid3X3 className="h-4 w-4 mr-2" />
-          Rule of Thirds Grid
-        </Button>
-        
-        <Button
-          variant={showFocus ? "default" : "outline"}
-          size="sm"
-          className="w-full justify-start bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-          onClick={() => setShowFocus(!showFocus)}
-        >
-          <Focus className="h-4 w-4 mr-2" />
-          Focus Points
-        </Button>
-        
-        <Button
-          variant={showMovement ? "default" : "outline"}
-          size="sm"
-          className="w-full justify-start bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-          onClick={() => setShowMovement(!showMovement)}
-        >
-          <Move3D className="h-4 w-4 mr-2" />
-          Movement Guides
-        </Button>
-        
-        <Button
-          variant={showCharacter ? "default" : "outline"}
-          size="sm"
-          className="w-full justify-start bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-          onClick={() => setShowCharacter(!showCharacter)}
-        >
-          <Eye className="h-4 w-4 mr-2" />
-          Character Analysis
-        </Button>
+      {/* Overlay Toggle */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-foreground">LCD Overlay</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOverlayToggle(!showOverlay)}
+            className="h-7 w-12 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+          >
+            {showOverlay ? (
+              <ToggleRight className="h-4 w-4 text-success" />
+            ) : (
+              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Overlay Mode */}
+      <div className="space-y-2">
+        <span className="text-sm font-medium text-foreground">Overlay Mode</span>
+        <div className="grid grid-cols-1 gap-1">
+          {["grid focus", "rule of thirds", "center point", "histogram", "level meter"].map((mode) => (
+            <Button
+              key={mode}
+              variant="ghost"
+              size="sm"
+              onClick={() => onOverlayModeChange(mode)}
+              className={`h-7 text-xs justify-start bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 ${
+                overlayMode === mode ? "text-camera-accent shadow-3d-inset" : "text-muted-foreground"
+              }`}
+            >
+              {mode}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid Toggle */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-foreground">Grid</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onGridToggle(!showGrid)}
+            className="h-7 w-12 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+          >
+            {showGrid ? (
+              <ToggleRight className="h-4 w-4 text-success" />
+            ) : (
+              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
 
-  return (
-    <div className="w-80 bg-panel border-l border-border flex flex-col">
-      {/* Panel Tabs - Vertical on the right edge */}
-      <div className="flex">
-        <div className="flex-1 p-4">
-          <Tabs value={activePanel} onValueChange={setActivePanel} orientation="vertical" className="w-full">
-            <TabsContent value="camera" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Camera className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Camera Settings</h3>
-              </div>
-              {renderCameraControls()}
-            </TabsContent>
-            
-            <TabsContent value="color" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Palette className="h-5 w-5 text-accent" />
-                <h3 className="text-lg font-semibold">Color & Style</h3>
-              </div>
-              {renderColorControls()}
-            </TabsContent>
-            
-            <TabsContent value="movement" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Move3D className="h-5 w-5 text-success" />
-                <h3 className="text-lg font-semibold">3D Movement</h3>
-              </div>
-              {renderMovementControls()}
-            </TabsContent>
-            
-            <TabsContent value="overlay" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Eye className="h-5 w-5 text-warning" />
-                <h3 className="text-lg font-semibold">Overlay Settings</h3>
-              </div>
-              {renderOverlayControls()}
-            </TabsContent>
+  const render3DGuideControls = () => (
+    <div className="space-y-4">
+      {/* 3D Cube Toggle */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-foreground">3D Perspective Guide</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onShow3DCubeToggle(!show3DCube)}
+            className="h-7 w-12 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+          >
+            {show3DCube ? (
+              <ToggleRight className="h-4 w-4 text-success" />
+            ) : (
+              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Interactive 3D cube to visualize and control perspective, depth, and spatial relationships in your scene.
+        </p>
+      </div>
+
+      {/* 3D Guide Features */}
+      <div className="space-y-2">
+        <span className="text-xs font-medium text-foreground">Guide Features</span>
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>Front Wall (Blue) - Main subject area</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span>Back Wall (Red) - Background area</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Left Wall (Green) - Left boundary</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+            <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+            <span>Right Wall (Amber) - Right boundary</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span>Ceiling (Purple) - Top boundary</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+            <span>Floor (Gray) - Bottom boundary</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div className="space-y-2">
+        <span className="text-xs font-medium text-foreground">Instructions</span>
+        <div className="text-[10px] text-muted-foreground space-y-1">
+          <p>• Drag cube to rotate and view different angles</p>
+          <p>• Use controls panel to fine-tune position and scale</p>
+          <p>• Match cube edges with image perspective</p>
+          <p>• Generate AI prompts based on 3D positioning</p>
+        </div>
+      </div>
+    </div>
+  );
             
             <TabsContent value="layers" className="mt-0 space-y-4">
               <div className="flex items-center space-x-2 mb-4">

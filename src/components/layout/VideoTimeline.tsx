@@ -14,7 +14,9 @@ import {
   RotateCw,
   Zap,
   Film,
-  Clock
+  Clock,
+  Undo2,
+  Redo2
 } from "lucide-react";
 
 interface Frame {
@@ -110,6 +112,24 @@ export const VideoTimeline = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* History Controls */}
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
+            <Undo2 className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
+            <Redo2 className="h-3 w-3" />
+          </Button>
+          
+          <div className="w-px h-6 bg-border mx-2"></div>
+          
+          {/* API Status */}
+          <div className="flex items-center space-x-2 bg-gradient-to-r from-camera-metal/10 to-camera-metal/5 px-3 py-1 rounded-full border border-camera-metal/30">
+            <Zap className="h-3 w-3 text-success" />
+            <span className="text-xs text-camera-metal font-medium">15/15 API</span>
+          </div>
+          
+          <div className="w-px h-6 bg-border mx-2"></div>
+          
           {/* Timeline Tools */}
           <Button size="sm" variant="ghost" className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs" onClick={addFrame}>
             <Plus className="h-3 w-3 mr-1" />

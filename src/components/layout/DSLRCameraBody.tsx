@@ -97,7 +97,7 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
           </div>
 
           {/* Center Navigation & Controls - Integrated into Camera Body */}
-          <div className="flex-1 flex flex-col items-center space-y-3 max-w-4xl mx-4">
+          <div className="flex-1 flex flex-col items-center space-y-2 max-w-4xl mx-4">
             {/* Brand Area */}
             <div className="bg-gradient-to-r from-camera-metal/20 via-camera-metal/30 to-camera-metal/20 px-6 py-2 rounded-lg shadow-3d-inset border border-camera-metal/40">
               <div className="text-camera-accent font-bold text-lg tracking-wider" style={{ fontFamily: 'serif' }}>NANO BANANA D6</div>
@@ -131,33 +131,6 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
                 );
               })}
             </div>
-
-            {/* Global Controls */}
-            <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
-                <Undo2 className="h-4 w-4 text-camera-metal" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
-                <Redo2 className="h-4 w-4 text-camera-metal" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30">
-                <Save className="h-4 w-4 text-camera-metal" />
-              </Button>
-              
-              <div className="w-px h-8 bg-camera-metal/40 mx-2"></div>
-              
-              {/* API Status */}
-              <div className="flex items-center space-x-2 bg-gradient-to-r from-camera-metal/10 to-camera-metal/5 px-3 py-1 rounded-full border border-camera-metal/30">
-                <Zap className="h-3 w-3 text-success" />
-                <span className="text-xs text-camera-metal font-medium">15/15</span>
-              </div>
-              
-              {/* Generate Button */}
-              <Button size="sm" className="h-8 px-4 bg-gradient-to-r from-primary to-accent hover:from-primary-glow hover:to-accent/80 text-xs font-medium">
-                <Zap className="h-3 w-3 mr-1" />
-                GENERATE
-              </Button>
-            </div>
           </div>
 
           {/* Right Side Controls */}
@@ -182,15 +155,19 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
               <Power className="h-4 w-4 text-success" />
             </Button>
 
-            {/* Shutter Button */}
+            {/* Shutter Button - Generate Function */}
             <div className="relative">
               <Button 
                 size="lg"
-                className="h-16 w-16 p-0 bg-gradient-to-br from-camera-accent via-camera-accent/80 to-camera-accent/60 shadow-3d-button border-2 border-camera-accent/50 rounded-full hover:from-camera-accent/90 hover:to-camera-accent/70 transition-all duration-200 transform hover:scale-105"
+                className="h-16 w-16 p-0 bg-gradient-to-br from-camera-accent via-camera-accent/80 to-camera-accent/60 shadow-3d-button border-2 border-camera-accent/50 rounded-full hover:from-camera-accent/90 hover:to-camera-accent/70 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                title="Generate Image - Click to create with AI"
               >
-                <Camera className="h-6 w-6 text-background" />
+                <Zap className="h-6 w-6 text-background" />
               </Button>
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-success rounded-full shadow-glow animate-pulse"></div>
+              <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-camera-accent font-medium">
+                GENERATE
+              </div>
             </div>
           </div>
         </div>

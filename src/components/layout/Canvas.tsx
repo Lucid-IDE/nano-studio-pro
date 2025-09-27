@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon } from "lucide-react";
 import { LCDOverlay } from "./LCDOverlay";
+import { Cube3DOverlay } from "./Cube3DOverlay";
 
 interface CanvasProps {
   showGrid: boolean;
@@ -9,9 +10,10 @@ interface CanvasProps {
   activeTool: string;
   showOverlay?: boolean;
   overlayMode?: string;
+  show3DCube?: boolean;
 }
 
-export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, overlayMode = "grid focus" }: CanvasProps) => {
+export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, overlayMode = "grid focus", show3DCube = false }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasImage, setHasImage] = useState(false);
 
@@ -149,6 +151,15 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
 
       {/* LCD Overlay */}
       <LCDOverlay showOverlay={showOverlay} overlayMode={overlayMode} />
+
+      {/* 3D Cube Overlay */}
+      <Cube3DOverlay 
+        showCube={show3DCube} 
+        onCubeChange={(params) => {
+          console.log("3D Cube parameters changed:", params);
+          // This will be used to generate AI prompts for scene movement
+        }} 
+      />
 
       {/* Tool cursor indicator */}
       <div className="absolute top-4 left-4 bg-surface/80 backdrop-blur-sm rounded px-3 py-1 text-sm text-foreground">
