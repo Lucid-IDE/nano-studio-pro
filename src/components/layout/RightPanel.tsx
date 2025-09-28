@@ -500,6 +500,52 @@ export const RightPanel = ({
       </div>
     </div>
   );
+
+  return (
+    <div className="w-80 h-full bg-gradient-surface shadow-3d-panel border-l border-camera-metal/20 flex">
+      <div className="flex-1 flex flex-col">
+        {/* Main Panel Content */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          <Tabs value={activePanel} onValueChange={setActivePanel} className="w-full">
+            <TabsContent value="camera" className="mt-0 space-y-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Camera className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Camera Settings</h3>
+              </div>
+              {renderCameraControls()}
+            </TabsContent>
+            
+            <TabsContent value="color" className="mt-0 space-y-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Palette className="h-5 w-5 text-accent" />
+                <h3 className="text-lg font-semibold">Color & Style</h3>
+              </div>
+              {renderColorControls()}
+            </TabsContent>
+            
+            <TabsContent value="movement" className="mt-0 space-y-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Move3D className="h-5 w-5 text-success" />
+                <h3 className="text-lg font-semibold">Movement</h3>
+              </div>
+              {renderMovementControls()}
+            </TabsContent>
+            
+            <TabsContent value="overlay" className="mt-0 space-y-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Eye className="h-5 w-5 text-warning" />
+                <h3 className="text-lg font-semibold">Overlay Settings</h3>
+              </div>
+              {renderOverlayControls()}
+            </TabsContent>
+            
+            <TabsContent value="3d" className="mt-0 space-y-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Box className="h-5 w-5 text-camera-accent" />
+                <h3 className="text-lg font-semibold">3D Guide</h3>
+              </div>
+              {render3DGuideControls()}
+            </TabsContent>
             
             <TabsContent value="layers" className="mt-0 space-y-4">
               <div className="flex items-center space-x-2 mb-4">
