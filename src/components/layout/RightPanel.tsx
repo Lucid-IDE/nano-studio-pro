@@ -9,14 +9,10 @@ import {
   Move3D,
   Eye,
   Layers3,
-  Sliders,
   Aperture,
   Sun,
   Focus,
   Zap,
-  Grid3X3,
-  RotateCw,
-  Maximize2,
   Settings2,
   Box,
   ToggleLeft,
@@ -138,7 +134,7 @@ export const RightPanel = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-button-3d shadow-3d-button rounded-full border border-camera-metal/30 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-camera-accent" />
+              <Aperture className="h-4 w-4 text-camera-accent" />
             </div>
             <span className="text-sm font-medium">Shutter</span>
           </div>
@@ -438,7 +434,7 @@ export const RightPanel = ({
 
   const renderSegmentationControls = () => (
     <AdvancedSegmentation 
-      imageElement={undefined} // This will be passed from Canvas component
+      imageElement={undefined}
       onSegmentationComplete={(results) => {
         console.log("Segmentation results:", results);
       }}
@@ -489,7 +485,7 @@ export const RightPanel = ({
             <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
             <span>Right Wall (Amber) - Right boundary</span>
           </div>
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
+          <div className="flex items-center space-x-2 text-[10px] text-muted-foregreen">
             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
             <span>Ceiling (Purple) - Top boundary</span>
           </div>
