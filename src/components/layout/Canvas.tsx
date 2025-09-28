@@ -16,6 +16,7 @@ interface CanvasProps {
 export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, overlayMode = "grid focus", show3DCube = false }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasImage, setHasImage] = useState(false);
+  const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,6 +82,19 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      console.error('Invalid file type. Please select an image.');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      console.error('File too large. Please select an image under 10MB.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -89,6 +103,10 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
         const ctx = canvas?.getContext("2d");
         if (!canvas || !ctx) return;
 
+        // Clear canvas first
+        ctx.fillStyle = "hsl(var(--canvas-bg))";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         // Calculate scale to fit image in canvas while maintaining aspect ratio
         const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.8;
         const width = img.width * scale;
@@ -96,11 +114,27 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
         const x = (canvas.width - width) / 2;
         const y = (canvas.height - height) / 2;
 
-        ctx.drawImage(img, x, y, width, height);
-        setHasImage(true);
+        try {
+          ctx.drawImage(img, x, y, width, height);
+          setHasImage(true);
+          setCurrentImage(img);
+          console.log('Image uploaded successfully:', file.name);
+        } catch (error) {
+          console.error('Failed to draw image:', error);
+        }
       };
+      
+      img.onerror = () => {
+        console.error('Failed to load image. Please try a different file.');
+      };
+      
       img.src = e.target?.result as string;
     };
+    
+    reader.onerror = () => {
+      console.error('Failed to read file. Please try again.');
+    };
+    
     reader.readAsDataURL(file);
   };
 

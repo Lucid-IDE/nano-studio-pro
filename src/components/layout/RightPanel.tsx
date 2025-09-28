@@ -20,8 +20,10 @@ import {
   Settings2,
   Box,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Scissors
 } from "lucide-react";
+import { AdvancedSegmentation } from "./AdvancedSegmentation";
 
 interface RightPanelProps {
   zoomLevel: number;
@@ -78,6 +80,7 @@ export const RightPanel = ({
     { id: "movement", icon: Move3D, name: "Movement", color: "text-success" },
     { id: "overlay", icon: Eye, name: "Overlay", color: "text-warning" },
     { id: "3d", icon: Box, name: "3D Guide", color: "text-camera-accent" },
+    { id: "segmentation", icon: Scissors, name: "AI Segmentation", color: "text-destructive" },
     { id: "layers", icon: Layers3, name: "Layers", color: "text-camera-accent" },
     { id: "advanced", icon: Settings2, name: "Advanced", color: "text-muted-foreground" },
   ];
@@ -433,6 +436,15 @@ export const RightPanel = ({
     </div>
   );
 
+  const renderSegmentationControls = () => (
+    <AdvancedSegmentation 
+      imageElement={undefined} // This will be passed from Canvas component
+      onSegmentationComplete={(results) => {
+        console.log("Segmentation results:", results);
+      }}
+    />
+  );
+
   const render3DGuideControls = () => (
     <div className="space-y-4">
       {/* 3D Cube Toggle */}
@@ -545,6 +557,14 @@ export const RightPanel = ({
                 <h3 className="text-lg font-semibold">3D Guide</h3>
               </div>
               {render3DGuideControls()}
+            </TabsContent>
+            
+            <TabsContent value="segmentation" className="mt-0 space-y-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <Scissors className="h-5 w-5 text-destructive" />
+                <h3 className="text-lg font-semibold">AI Segmentation</h3>
+              </div>
+              {renderSegmentationControls()}
             </TabsContent>
             
             <TabsContent value="layers" className="mt-0 space-y-4">
