@@ -52,6 +52,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragMode, setDragMode] = useState<'rotate' | 'position' | 'scale'>('rotate');
+  const [selectedCorner, setSelectedCorner] = useState<number | null>(null);
 
   useEffect(() => {
     if (!showCube) return;
@@ -180,11 +182,12 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     // Draw vertices as control points
     vertices.forEach((vertex, i) => {
       ctx.beginPath();
-      ctx.arc(vertex.x, vertex.y, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = vertex.z > 0 ? "#ffffff" : "#94a3b8";
+      const radius = selectedCorner === i ? 6 : 4;
+      ctx.arc(vertex.x, vertex.y, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = selectedCorner === i ? "#fbbf24" : (vertex.z > 0 ? "#ffffff" : "#94a3b8");
       ctx.fill();
-      ctx.strokeStyle = "#1e293b";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = selectedCorner === i ? "#f59e0b" : "#1e293b";
+      ctx.lineWidth = selectedCorner === i ? 2 : 1;
       ctx.stroke();
     });
 
@@ -220,31 +223,151 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     ctx.stroke();
   };
 
+  const getMousePosition = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  };
+
+  const findNearestVertex = (mousePos: { x: number; y: number }) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    const { position, rotation, scale, perspective } = cubeParams;
+    
+    const project3D = (x: number, y: number, z: number) => {
+      const cosRx = Math.cos(rotation.x * Math.PI / 180);
+      const sinRx = Math.sin(rotation.x * Math.PI / 180);
+      const cosRy = Math.cos(rotation.y * Math.PI / 180);
+      const sinRy = Math.sin(rotation.y * Math.PI / 180);
+      const cosRz = Math.cos(rotation.z * Math.PI / 180);
+      const sinRz = Math.sin(rotation.z * Math.PI / 180);
+
+      let rotatedX = x * cosRy - z * sinRy;
+      let rotatedZ = x * sinRy + z * cosRy;
+      let rotatedY = y * cosRx - rotatedZ * sinRx;
+      rotatedZ = y * sinRx + rotatedZ * cosRx;
+      const finalX = rotatedX * cosRz - rotatedY * sinRz;
+      const finalY = rotatedX * sinRz + rotatedY * cosRz;
+
+      const worldX = finalX + position.x;
+      const worldY = finalY + position.y;
+      const worldZ = rotatedZ + position.z;
+
+      const distance = perspective;
+      const screenX = centerX + (worldX * distance) / (distance + worldZ);
+      const screenY = centerY - (worldY * distance) / (distance + worldZ);
+
+      return { x: screenX, y: screenY, z: worldZ };
+    };
+
+    const vertices = [
+      project3D(-scale.width/2, -scale.height/2, scale.depth/2),
+      project3D(scale.width/2, -scale.height/2, scale.depth/2),
+      project3D(scale.width/2, scale.height/2, scale.depth/2),
+      project3D(-scale.width/2, scale.height/2, scale.depth/2),
+      project3D(-scale.width/2, -scale.height/2, -scale.depth/2),
+      project3D(scale.width/2, -scale.height/2, -scale.depth/2),
+      project3D(scale.width/2, scale.height/2, -scale.depth/2),
+      project3D(-scale.width/2, scale.height/2, -scale.depth/2),
+    ];
+
+    for (let i = 0; i < vertices.length; i++) {
+      const vertex = vertices[i];
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - vertex.x, 2) + Math.pow(mousePos.y - vertex.y, 2)
+      );
+      if (distance <= 8) {
+        return i;
+      }
+    }
+    return null;
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const mousePos = getMousePosition(e);
+    const nearestVertex = findNearestVertex(mousePos);
+    
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
+    
+    if (nearestVertex !== null) {
+      setSelectedCorner(nearestVertex);
+      setDragMode('scale');
+    } else if (e.button === 2) { // Right click
+      setDragMode('position');
+    } else { // Left click
+      setDragMode('rotate');
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging) {
+      // Update hover state for corners
+      const mousePos = getMousePosition(e);
+      const nearestVertex = findNearestVertex(mousePos);
+      setSelectedCorner(nearestVertex);
+      return;
+    }
 
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
 
-    setCubeParams(prev => ({
-      ...prev,
-      rotation: {
-        ...prev.rotation,
-        y: prev.rotation.y + deltaX * 0.5,
-        x: prev.rotation.x - deltaY * 0.5,
-      }
-    }));
+    if (dragMode === 'rotate') {
+      setCubeParams(prev => ({
+        ...prev,
+        rotation: {
+          ...prev.rotation,
+          y: prev.rotation.y + deltaX * 0.5,
+          x: prev.rotation.x - deltaY * 0.5,
+        }
+      }));
+    } else if (dragMode === 'position') {
+      setCubeParams(prev => ({
+        ...prev,
+        position: {
+          ...prev.position,
+          x: prev.position.x + deltaX * 0.5,
+          y: prev.position.y - deltaY * 0.5,
+        }
+      }));
+    } else if (dragMode === 'scale' && selectedCorner !== null) {
+      // Scale the cube while maintaining proportions
+      const scaleFactor = 1 + (deltaX + deltaY) * 0.002;
+      setCubeParams(prev => ({
+        ...prev,
+        scale: {
+          width: Math.max(50, Math.min(400, prev.scale.width * scaleFactor)),
+          height: Math.max(50, Math.min(400, prev.scale.height * scaleFactor)),
+          depth: Math.max(50, Math.min(400, prev.scale.depth * scaleFactor)),
+        }
+      }));
+    }
 
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    if (dragMode !== 'scale') {
+      setSelectedCorner(null);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default right-click menu
   };
 
   if (!showCube) return null;
@@ -254,11 +377,15 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       {/* 3D Canvas Overlay */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 pointer-events-auto cursor-grab active:cursor-grabbing"
+        className={`absolute inset-0 pointer-events-auto ${
+          selectedCorner !== null ? 'cursor-nw-resize' : 
+          dragMode === 'position' ? 'cursor-move' : 'cursor-grab'
+        } ${isDragging ? 'active:cursor-grabbing' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onContextMenu={handleContextMenu}
       />
 
       {/* 3D Cube Controls Panel */}

@@ -80,28 +80,50 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      console.error('Invalid file type. Please select an image.');
+      alert('Invalid file type. Please select an image.');
+      console.error('Invalid file type:', file.type);
       return;
     }
 
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      console.error('File too large. Please select an image under 10MB.');
+      alert('File too large. Please select an image under 10MB.');
+      console.error('File too large:', file.size);
       return;
     }
 
+    console.log('Starting file read...');
     const reader = new FileReader();
+    
     reader.onload = (e) => {
+      console.log('FileReader onload triggered');
+      const result = e.target?.result;
+      if (!result) {
+        console.error('No result from FileReader');
+        return;
+      }
+
       const img = new Image();
       img.onload = () => {
+        console.log('Image loaded successfully. Dimensions:', img.width, 'x', img.height);
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
-        if (!canvas || !ctx) return;
+        if (!canvas || !ctx) {
+          console.error('Canvas or context not available');
+          return;
+        }
+
+        console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
 
         // Clear canvas first
         ctx.fillStyle = "hsl(var(--canvas-bg))";
@@ -114,28 +136,37 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
         const x = (canvas.width - width) / 2;
         const y = (canvas.height - height) / 2;
 
+        console.log('Drawing image at:', x, y, 'Size:', width, 'x', height);
+
         try {
           ctx.drawImage(img, x, y, width, height);
           setHasImage(true);
           setCurrentImage(img);
-          console.log('Image uploaded successfully:', file.name);
+          console.log('Image uploaded and drawn successfully');
         } catch (error) {
           console.error('Failed to draw image:', error);
+          alert('Failed to draw image. Please try again.');
         }
       };
       
-      img.onerror = () => {
-        console.error('Failed to load image. Please try a different file.');
+      img.onerror = (error) => {
+        console.error('Image load error:', error);
+        alert('Failed to load image. Please try a different file.');
       };
       
-      img.src = e.target?.result as string;
+      console.log('Setting image src...');
+      img.src = result as string;
     };
     
-    reader.onerror = () => {
-      console.error('Failed to read file. Please try again.');
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error);
+      alert('Failed to read file. Please try again.');
     };
     
     reader.readAsDataURL(file);
+    
+    // Reset the input to allow re-uploading the same file
+    event.target.value = '';
   };
 
   return (
