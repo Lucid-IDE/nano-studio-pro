@@ -36,7 +36,22 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
     ctx.fillStyle = "hsl(var(--canvas-bg))";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid if enabled
+    // Draw image if present (fit to canvas, keep aspect)
+    if (hasImage && currentImage) {
+      const img = currentImage;
+      const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.8;
+      const width = img.width * scale;
+      const height = img.height * scale;
+      const x = (canvas.width - width) / 2;
+      const y = (canvas.height - height) / 2;
+      try {
+        ctx.drawImage(img, x, y, width, height);
+      } catch (e) {
+        console.error('Redraw image failed:', e);
+      }
+    }
+
+    // Draw grid if enabled (on top of image)
     if (showGrid) {
       const gridSize = 20 * (zoomLevel / 100);
       ctx.strokeStyle = "hsl(var(--grid-line))";
@@ -60,7 +75,7 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
       ctx.globalAlpha = 1;
     }
 
-    // Draw center crosshairs
+    // Draw center crosshairs (on top)
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
@@ -76,7 +91,7 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
     ctx.stroke();
     
     ctx.globalAlpha = 1;
-  }, [showGrid, zoomLevel]);
+  }, [showGrid, zoomLevel, hasImage, currentImage]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

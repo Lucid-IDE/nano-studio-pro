@@ -173,8 +173,8 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
         </div>
 
         {/* Main Screen Area (LCD) */}
-        <div className="bg-background border-4 border-camera-metal/60 rounded-2xl shadow-3d-inset overflow-hidden mb-4">
-          <div className="border-2 border-camera-metal/20 rounded-xl overflow-hidden">
+        <div className="bg-background border-4 border-camera-metal/60 rounded-2xl shadow-3d-inset overflow-visible mb-4">
+          <div className="border-2 border-camera-metal/20 rounded-xl overflow-visible">
             {children}
           </div>
         </div>
