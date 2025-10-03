@@ -19,7 +19,14 @@ interface Cube3DOverlayProps {
 interface CubeParams {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
-  scale: { width: number; height: number; depth: number };
+  faceOffsets: {
+    front: number;
+    back: number;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  };
   perspective: number;
   fov: number;
   walls: {
@@ -37,7 +44,14 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
   const [cubeParams, setCubeParams] = useState<CubeParams>({
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: 15, y: 45, z: 0 },
-    scale: { width: 200, height: 200, depth: 200 },
+    faceOffsets: {
+      front: 100,
+      back: -100,
+      left: -100,
+      right: 100,
+      top: 100,
+      bottom: -100
+    },
     perspective: 800,
     fov: 60,
     walls: {
@@ -84,7 +98,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    const { position, rotation, scale, perspective } = cubeParams;
+    const { position, rotation, faceOffsets, perspective } = cubeParams;
     
     // 3D to 2D projection
     const project3D = (x: number, y: number, z: number) => {
@@ -121,18 +135,18 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       return { x: screenX, y: screenY, z: worldZ };
     };
 
-    // Define cube vertices
+    // Define cube vertices using individual face offsets
     const vertices = [
-      // Front face
-      project3D(-scale.width/2, -scale.height/2, scale.depth/2),  // 0
-      project3D(scale.width/2, -scale.height/2, scale.depth/2),   // 1
-      project3D(scale.width/2, scale.height/2, scale.depth/2),    // 2
-      project3D(-scale.width/2, scale.height/2, scale.depth/2),   // 3
-      // Back face
-      project3D(-scale.width/2, -scale.height/2, -scale.depth/2), // 4
-      project3D(scale.width/2, -scale.height/2, -scale.depth/2),  // 5
-      project3D(scale.width/2, scale.height/2, -scale.depth/2),   // 6
-      project3D(-scale.width/2, scale.height/2, -scale.depth/2),  // 7
+      // Front face (Z+ axis)
+      project3D(faceOffsets.left, faceOffsets.bottom, faceOffsets.front),  // 0
+      project3D(faceOffsets.right, faceOffsets.bottom, faceOffsets.front),   // 1
+      project3D(faceOffsets.right, faceOffsets.top, faceOffsets.front),    // 2
+      project3D(faceOffsets.left, faceOffsets.top, faceOffsets.front),   // 3
+      // Back face (Z- axis)
+      project3D(faceOffsets.left, faceOffsets.bottom, faceOffsets.back), // 4
+      project3D(faceOffsets.right, faceOffsets.bottom, faceOffsets.back),  // 5
+      project3D(faceOffsets.right, faceOffsets.top, faceOffsets.back),   // 6
+      project3D(faceOffsets.left, faceOffsets.top, faceOffsets.back),  // 7
     ];
 
     // Define faces (with z-sorting for proper rendering)
@@ -244,7 +258,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    const { position, rotation, scale, perspective } = cubeParams;
+    const { position, rotation, faceOffsets, perspective } = cubeParams;
     
     const project3D = (x: number, y: number, z: number) => {
       const cosRx = Math.cos(rotation.x * Math.PI / 180);
@@ -273,14 +287,14 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     };
 
     const vertices = [
-      project3D(-scale.width/2, -scale.height/2, scale.depth/2),
-      project3D(scale.width/2, -scale.height/2, scale.depth/2),
-      project3D(scale.width/2, scale.height/2, scale.depth/2),
-      project3D(-scale.width/2, scale.height/2, scale.depth/2),
-      project3D(-scale.width/2, -scale.height/2, -scale.depth/2),
-      project3D(scale.width/2, -scale.height/2, -scale.depth/2),
-      project3D(scale.width/2, scale.height/2, -scale.depth/2),
-      project3D(-scale.width/2, scale.height/2, -scale.depth/2),
+      project3D(faceOffsets.left, faceOffsets.bottom, faceOffsets.front),
+      project3D(faceOffsets.right, faceOffsets.bottom, faceOffsets.front),
+      project3D(faceOffsets.right, faceOffsets.top, faceOffsets.front),
+      project3D(faceOffsets.left, faceOffsets.top, faceOffsets.front),
+      project3D(faceOffsets.left, faceOffsets.bottom, faceOffsets.back),
+      project3D(faceOffsets.right, faceOffsets.bottom, faceOffsets.back),
+      project3D(faceOffsets.right, faceOffsets.top, faceOffsets.back),
+      project3D(faceOffsets.left, faceOffsets.top, faceOffsets.back),
     ];
 
     for (let i = 0; i < vertices.length; i++) {
@@ -344,14 +358,17 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
         }
       }));
     } else if (dragMode === 'scale' && selectedCorner !== null) {
-      // Scale the cube while maintaining proportions
+      // Scale all faces proportionally
       const scaleFactor = 1 + (deltaX + deltaY) * 0.002;
       setCubeParams(prev => ({
         ...prev,
-        scale: {
-          width: Math.max(50, Math.min(400, prev.scale.width * scaleFactor)),
-          height: Math.max(50, Math.min(400, prev.scale.height * scaleFactor)),
-          depth: Math.max(50, Math.min(400, prev.scale.depth * scaleFactor)),
+        faceOffsets: {
+          front: Math.max(25, Math.min(200, prev.faceOffsets.front * scaleFactor)),
+          back: Math.max(-200, Math.min(-25, prev.faceOffsets.back * scaleFactor)),
+          left: Math.max(-200, Math.min(-25, prev.faceOffsets.left * scaleFactor)),
+          right: Math.max(25, Math.min(200, prev.faceOffsets.right * scaleFactor)),
+          top: Math.max(25, Math.min(200, prev.faceOffsets.top * scaleFactor)),
+          bottom: Math.max(-200, Math.min(-25, prev.faceOffsets.bottom * scaleFactor))
         }
       }));
     }
@@ -395,92 +412,155 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
           <span className="text-sm font-medium text-camera-accent">3D FACE CONTROLS</span>
         </div>
 
-        {/* Face Controls - Simple In/Out Sliders */}
+        {/* Face Controls - Individual Face Sliders */}
         <div className="space-y-2">
-          <span className="text-xs font-medium">Adjust Cube Faces</span>
+          <span className="text-xs font-medium">Adjust Each Face</span>
           
           {/* Front Face */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div 
-                  className="w-4 h-4 rounded border border-border" 
+                  className="w-4 h-4 rounded border border-border cursor-pointer" 
                   style={{ backgroundColor: cubeParams.walls.front }}
                 ></div>
                 <span className="text-xs">Front</span>
               </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.scale.depth.toFixed(0)}px</span>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.front.toFixed(0)}</span>
             </div>
             <Slider
-              value={[cubeParams.scale.depth]}
-              onValueChange={([depth]) => setCubeParams(prev => ({
+              value={[cubeParams.faceOffsets.front]}
+              onValueChange={([front]) => setCubeParams(prev => ({
                 ...prev,
-                scale: { ...prev.scale, depth }
+                faceOffsets: { ...prev.faceOffsets, front }
               }))}
-              min={50}
-              max={400}
+              min={25}
+              max={200}
               step={5}
               className="h-2"
             />
           </div>
 
-          {/* Width */}
+          {/* Back Face */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="flex space-x-0.5">
-                  <div 
-                    className="w-2 h-4 rounded-l border border-border" 
-                    style={{ backgroundColor: cubeParams.walls.left }}
-                  ></div>
-                  <div 
-                    className="w-2 h-4 rounded-r border border-border" 
-                    style={{ backgroundColor: cubeParams.walls.right }}
-                  ></div>
-                </div>
-                <span className="text-xs">Width (L/R)</span>
+                <div 
+                  className="w-4 h-4 rounded border border-border cursor-pointer" 
+                  style={{ backgroundColor: cubeParams.walls.back }}
+                ></div>
+                <span className="text-xs">Back</span>
               </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.scale.width.toFixed(0)}px</span>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.back.toFixed(0)}</span>
             </div>
             <Slider
-              value={[cubeParams.scale.width]}
-              onValueChange={([width]) => setCubeParams(prev => ({
+              value={[cubeParams.faceOffsets.back]}
+              onValueChange={([back]) => setCubeParams(prev => ({
                 ...prev,
-                scale: { ...prev.scale, width }
+                faceOffsets: { ...prev.faceOffsets, back }
               }))}
-              min={50}
-              max={400}
+              min={-200}
+              max={-25}
               step={5}
               className="h-2"
             />
           </div>
 
-          {/* Height */}
+          {/* Left Face */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="flex flex-col space-y-0.5">
-                  <div 
-                    className="w-4 h-2 rounded-t border border-border" 
-                    style={{ backgroundColor: cubeParams.walls.top }}
-                  ></div>
-                  <div 
-                    className="w-4 h-2 rounded-b border border-border" 
-                    style={{ backgroundColor: cubeParams.walls.bottom }}
-                  ></div>
-                </div>
-                <span className="text-xs">Height (T/B)</span>
+                <div 
+                  className="w-4 h-4 rounded border border-border cursor-pointer" 
+                  style={{ backgroundColor: cubeParams.walls.left }}
+                ></div>
+                <span className="text-xs">Left</span>
               </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.scale.height.toFixed(0)}px</span>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.left.toFixed(0)}</span>
             </div>
             <Slider
-              value={[cubeParams.scale.height]}
-              onValueChange={([height]) => setCubeParams(prev => ({
+              value={[cubeParams.faceOffsets.left]}
+              onValueChange={([left]) => setCubeParams(prev => ({
                 ...prev,
-                scale: { ...prev.scale, height }
+                faceOffsets: { ...prev.faceOffsets, left }
               }))}
-              min={50}
-              max={400}
+              min={-200}
+              max={-25}
+              step={5}
+              className="h-2"
+            />
+          </div>
+
+          {/* Right Face */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-4 h-4 rounded border border-border cursor-pointer" 
+                  style={{ backgroundColor: cubeParams.walls.right }}
+                ></div>
+                <span className="text-xs">Right</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.right.toFixed(0)}</span>
+            </div>
+            <Slider
+              value={[cubeParams.faceOffsets.right]}
+              onValueChange={([right]) => setCubeParams(prev => ({
+                ...prev,
+                faceOffsets: { ...prev.faceOffsets, right }
+              }))}
+              min={25}
+              max={200}
+              step={5}
+              className="h-2"
+            />
+          </div>
+
+          {/* Top Face */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-4 h-4 rounded border border-border cursor-pointer" 
+                  style={{ backgroundColor: cubeParams.walls.top }}
+                ></div>
+                <span className="text-xs">Top</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.top.toFixed(0)}</span>
+            </div>
+            <Slider
+              value={[cubeParams.faceOffsets.top]}
+              onValueChange={([top]) => setCubeParams(prev => ({
+                ...prev,
+                faceOffsets: { ...prev.faceOffsets, top }
+              }))}
+              min={25}
+              max={200}
+              step={5}
+              className="h-2"
+            />
+          </div>
+
+          {/* Bottom Face */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-4 h-4 rounded border border-border cursor-pointer" 
+                  style={{ backgroundColor: cubeParams.walls.bottom }}
+                ></div>
+                <span className="text-xs">Bottom</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.bottom.toFixed(0)}</span>
+            </div>
+            <Slider
+              value={[cubeParams.faceOffsets.bottom]}
+              onValueChange={([bottom]) => setCubeParams(prev => ({
+                ...prev,
+                faceOffsets: { ...prev.faceOffsets, bottom }
+              }))}
+              min={-200}
+              max={-25}
               step={5}
               className="h-2"
             />
@@ -548,7 +628,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
             onClick={() => setCubeParams(prev => ({ 
               ...prev, 
               rotation: { x: 0, y: 0, z: 0 },
-              scale: { width: 200, height: 200, depth: 200 }
+              faceOffsets: { front: 100, back: -100, left: -100, right: 100, top: 100, bottom: -100 }
             }))}
           >
             Reset
