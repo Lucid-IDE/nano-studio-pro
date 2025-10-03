@@ -392,58 +392,98 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       <div className="absolute top-4 right-4 bg-surface/95 backdrop-blur-sm rounded-lg border border-border p-3 space-y-3 w-64">
         <div className="flex items-center space-x-2">
           <Box className="h-4 w-4 text-camera-accent" />
-          <span className="text-sm font-medium text-camera-accent">3D PERSPECTIVE GUIDE</span>
+          <span className="text-sm font-medium text-camera-accent">3D FACE CONTROLS</span>
         </div>
 
-        {/* Position Controls */}
+        {/* Face Controls - Simple In/Out Sliders */}
         <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Move3D className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium">Position</span>
+          <span className="text-xs font-medium">Adjust Cube Faces</span>
+          
+          {/* Front Face */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-4 h-4 rounded border border-border" 
+                  style={{ backgroundColor: cubeParams.walls.front }}
+                ></div>
+                <span className="text-xs">Front</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.scale.depth.toFixed(0)}px</span>
+            </div>
+            <Slider
+              value={[cubeParams.scale.depth]}
+              onValueChange={([depth]) => setCubeParams(prev => ({
+                ...prev,
+                scale: { ...prev.scale, depth }
+              }))}
+              min={50}
+              max={400}
+              step={5}
+              className="h-2"
+            />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">X</div>
-              <Slider
-                value={[cubeParams.position.x]}
-                onValueChange={([x]) => setCubeParams(prev => ({
-                  ...prev,
-                  position: { ...prev.position, x }
-                }))}
-                min={-200}
-                max={200}
-                step={5}
-                className="h-2"
-              />
+
+          {/* Width */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-0.5">
+                  <div 
+                    className="w-2 h-4 rounded-l border border-border" 
+                    style={{ backgroundColor: cubeParams.walls.left }}
+                  ></div>
+                  <div 
+                    className="w-2 h-4 rounded-r border border-border" 
+                    style={{ backgroundColor: cubeParams.walls.right }}
+                  ></div>
+                </div>
+                <span className="text-xs">Width (L/R)</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.scale.width.toFixed(0)}px</span>
             </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">Y</div>
-              <Slider
-                value={[cubeParams.position.y]}
-                onValueChange={([y]) => setCubeParams(prev => ({
-                  ...prev,
-                  position: { ...prev.position, y }
-                }))}
-                min={-200}
-                max={200}
-                step={5}
-                className="h-2"
-              />
+            <Slider
+              value={[cubeParams.scale.width]}
+              onValueChange={([width]) => setCubeParams(prev => ({
+                ...prev,
+                scale: { ...prev.scale, width }
+              }))}
+              min={50}
+              max={400}
+              step={5}
+              className="h-2"
+            />
+          </div>
+
+          {/* Height */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="flex flex-col space-y-0.5">
+                  <div 
+                    className="w-4 h-2 rounded-t border border-border" 
+                    style={{ backgroundColor: cubeParams.walls.top }}
+                  ></div>
+                  <div 
+                    className="w-4 h-2 rounded-b border border-border" 
+                    style={{ backgroundColor: cubeParams.walls.bottom }}
+                  ></div>
+                </div>
+                <span className="text-xs">Height (T/B)</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">{cubeParams.scale.height.toFixed(0)}px</span>
             </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">Z</div>
-              <Slider
-                value={[cubeParams.position.z]}
-                onValueChange={([z]) => setCubeParams(prev => ({
-                  ...prev,
-                  position: { ...prev.position, z }
-                }))}
-                min={-200}
-                max={200}
-                step={5}
-                className="h-2"
-              />
-            </div>
+            <Slider
+              value={[cubeParams.scale.height]}
+              onValueChange={([height]) => setCubeParams(prev => ({
+                ...prev,
+                scale: { ...prev.scale, height }
+              }))}
+              min={50}
+              max={400}
+              step={5}
+              className="h-2"
+            />
           </div>
         </div>
 
@@ -451,7 +491,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
             <RotateCw className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium">Rotation (°)</span>
+            <span className="text-xs font-medium">Rotation</span>
           </div>
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
@@ -499,118 +539,17 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
           </div>
         </div>
 
-        {/* Scale Controls */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Maximize2 className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium">Dimensions</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">W</div>
-              <Slider
-                value={[cubeParams.scale.width]}
-                onValueChange={([width]) => setCubeParams(prev => ({
-                  ...prev,
-                  scale: { ...prev.scale, width }
-                }))}
-                min={50}
-                max={400}
-                step={10}
-                className="h-2"
-              />
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">H</div>
-              <Slider
-                value={[cubeParams.scale.height]}
-                onValueChange={([height]) => setCubeParams(prev => ({
-                  ...prev,
-                  scale: { ...prev.scale, height }
-                }))}
-                min={50}
-                max={400}
-                step={10}
-                className="h-2"
-              />
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">D</div>
-              <Slider
-                value={[cubeParams.scale.depth]}
-                onValueChange={([depth]) => setCubeParams(prev => ({
-                  ...prev,
-                  scale: { ...prev.scale, depth }
-                }))}
-                min={50}
-                max={400}
-                step={10}
-                className="h-2"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Perspective Control */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Eye className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium">Perspective</span>
-          </div>
-          <Slider
-            value={[cubeParams.perspective]}
-            onValueChange={([perspective]) => setCubeParams(prev => ({
-              ...prev,
-              perspective
-            }))}
-            min={200}
-            max={1200}
-            step={20}
-            className="h-2"
-          />
-        </div>
-
-        {/* Wall Color Indicators */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Palette className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium">Wall Colors</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1 text-[10px]">
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cubeParams.walls.front }}></div>
-              <span>Front</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cubeParams.walls.back }}></div>
-              <span>Back</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cubeParams.walls.left }}></div>
-              <span>Left</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cubeParams.walls.right }}></div>
-              <span>Right</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cubeParams.walls.top }}></div>
-              <span>Top</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cubeParams.walls.bottom }}></div>
-              <span>Floor</span>
-            </div>
-          </div>
-        </div>
-
         {/* Quick Actions */}
         <div className="flex space-x-1">
           <Button 
             size="sm" 
             variant="ghost" 
             className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-            onClick={() => setCubeParams(prev => ({ ...prev, rotation: { x: 0, y: 0, z: 0 } }))}
+            onClick={() => setCubeParams(prev => ({ 
+              ...prev, 
+              rotation: { x: 0, y: 0, z: 0 },
+              scale: { width: 200, height: 200, depth: 200 }
+            }))}
           >
             Reset
           </Button>

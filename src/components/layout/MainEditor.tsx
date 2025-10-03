@@ -13,12 +13,12 @@ export const MainEditor = () => {
   const [show3DCube, setShow3DCube] = useState(false);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         <ToolSidebar activeTool={activeTool} onToolChange={setActiveTool} />
         
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-4">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 p-4 min-h-0">
             <Canvas 
               showGrid={showGrid} 
               zoomLevel={zoomLevel} 
@@ -44,7 +44,9 @@ export const MainEditor = () => {
         />
       </div>
       
-      <VideoTimeline />
+      <div className="flex-shrink-0">
+        <VideoTimeline />
+      </div>
     </div>
   );
 };

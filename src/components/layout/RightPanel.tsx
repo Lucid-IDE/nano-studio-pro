@@ -511,8 +511,35 @@ export const RightPanel = ({
 
   return (
     <div className="w-80 h-full bg-gradient-surface shadow-3d-panel border-l border-camera-metal/20 flex">
+      {/* Vertical Tab Strip - Left Edge */}
+      <div className="w-14 bg-surface border-r border-border flex flex-col items-center py-4 space-y-2">
+        {panelTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activePanel === tab.id;
+          
+          return (
+            <Button
+              key={tab.id}
+              variant="ghost"
+              size="sm"
+              className={`
+                w-10 h-10 p-0 rounded-lg transition-all duration-200 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30
+                ${isActive 
+                  ? `${tab.color} scale-110 shadow-glow` 
+                  : "text-camera-metal hover:text-foreground hover:scale-105"
+                }
+              `}
+              onClick={() => setActivePanel(tab.id)}
+              title={tab.name}
+            >
+              <Icon className={`h-4 w-4 transition-all duration-200 ${isActive ? 'scale-110' : ''}`} />
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Main Panel Content */}
       <div className="flex-1 flex flex-col">
-        {/* Main Panel Content */}
         <div className="flex-1 p-4 overflow-y-auto">
           <Tabs value={activePanel} onValueChange={setActivePanel} className="w-full">
             <TabsContent value="camera" className="mt-0 space-y-4">
@@ -583,33 +610,6 @@ export const RightPanel = ({
               </div>
             </TabsContent>
           </Tabs>
-        </div>
-        
-        {/* Vertical Tab Strip */}
-        <div className="w-14 bg-surface border-l border-border flex flex-col items-center py-4 space-y-2">
-          {panelTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activePanel === tab.id;
-            
-            return (
-              <Button
-                key={tab.id}
-                variant="ghost"
-                size="sm"
-                className={`
-                  w-10 h-10 p-0 rounded-lg transition-all duration-200 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30
-                  ${isActive 
-                    ? `${tab.color} scale-110 shadow-glow` 
-                    : "text-camera-metal hover:text-foreground hover:scale-105"
-                  }
-                `}
-                onClick={() => setActivePanel(tab.id)}
-                title={tab.name}
-              >
-                <Icon className={`h-4 w-4 transition-all duration-200 ${isActive ? 'scale-110' : ''}`} />
-              </Button>
-            );
-          })}
         </div>
       </div>
     </div>
