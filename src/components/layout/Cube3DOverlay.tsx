@@ -68,6 +68,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragMode, setDragMode] = useState<'rotate' | 'position' | 'scale'>('rotate');
   const [selectedCorner, setSelectedCorner] = useState<number | null>(null);
+  const [selectedArrow, setSelectedArrow] = useState<string | null>(null);
+  const [hoveredArrow, setHoveredArrow] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showCube) return;
@@ -180,8 +182,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       }
       ctx.closePath();
 
-      // Fill face with transparency
-      const alpha = face.avgZ > 0 ? 0.3 : 0.15; // Front faces more opaque
+      // Fill face with transparency (dimmed)
+      const alpha = face.avgZ > 0 ? 0.15 : 0.08; // More transparent
       ctx.fillStyle = face.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
       ctx.fill();
 
@@ -235,6 +237,104 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 3;
     ctx.stroke();
+
+    // Draw face arrows
+    drawFaceArrows(ctx, project3D);
+  };
+
+  const drawFaceArrows = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    const arrowLength = 40;
+    const arrowHeadSize = 8;
+    const { faceOffsets } = cubeParams;
+
+    // Calculate face centers and arrow endpoints
+    const arrows = [
+      { 
+        name: 'front', 
+        center: project3D(0, 0, faceOffsets.front),
+        end: project3D(0, 0, faceOffsets.front + arrowLength),
+        color: cubeParams.walls.front
+      },
+      { 
+        name: 'back', 
+        center: project3D(0, 0, faceOffsets.back),
+        end: project3D(0, 0, faceOffsets.back - arrowLength),
+        color: cubeParams.walls.back
+      },
+      { 
+        name: 'left', 
+        center: project3D(faceOffsets.left, 0, 0),
+        end: project3D(faceOffsets.left - arrowLength, 0, 0),
+        color: cubeParams.walls.left
+      },
+      { 
+        name: 'right', 
+        center: project3D(faceOffsets.right, 0, 0),
+        end: project3D(faceOffsets.right + arrowLength, 0, 0),
+        color: cubeParams.walls.right
+      },
+      { 
+        name: 'top', 
+        center: project3D(0, faceOffsets.top, 0),
+        end: project3D(0, faceOffsets.top + arrowLength, 0),
+        color: cubeParams.walls.top
+      },
+      { 
+        name: 'bottom', 
+        center: project3D(0, faceOffsets.bottom, 0),
+        end: project3D(0, faceOffsets.bottom - arrowLength, 0),
+        color: cubeParams.walls.bottom
+      },
+    ];
+
+    arrows.forEach(arrow => {
+      const isSelected = selectedArrow === arrow.name;
+      const isHovered = hoveredArrow === arrow.name;
+      
+      // Brighten the color
+      const brightColor = brightenColor(arrow.color, 40);
+      
+      // Draw arrow line
+      ctx.beginPath();
+      ctx.moveTo(arrow.center.x, arrow.center.y);
+      ctx.lineTo(arrow.end.x, arrow.end.y);
+      ctx.strokeStyle = isSelected ? '#fbbf24' : (isHovered ? '#ffffff' : brightColor);
+      ctx.lineWidth = isSelected ? 4 : (isHovered ? 3 : 2);
+      ctx.stroke();
+
+      // Draw arrow head
+      const angle = Math.atan2(arrow.end.y - arrow.center.y, arrow.end.x - arrow.center.x);
+      ctx.beginPath();
+      ctx.moveTo(arrow.end.x, arrow.end.y);
+      ctx.lineTo(
+        arrow.end.x - arrowHeadSize * Math.cos(angle - Math.PI / 6),
+        arrow.end.y - arrowHeadSize * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        arrow.end.x - arrowHeadSize * Math.cos(angle + Math.PI / 6),
+        arrow.end.y - arrowHeadSize * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fillStyle = isSelected ? '#fbbf24' : (isHovered ? '#ffffff' : brightColor);
+      ctx.fill();
+
+      // Draw interactive circle at arrow base
+      ctx.beginPath();
+      ctx.arc(arrow.center.x, arrow.center.y, isSelected ? 8 : (isHovered ? 7 : 5), 0, 2 * Math.PI);
+      ctx.fillStyle = isSelected ? '#fbbf24' : (isHovered ? '#ffffff' : brightColor);
+      ctx.fill();
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  };
+
+  const brightenColor = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, ((num >> 16) & 255) + percent);
+    const g = Math.min(255, ((num >> 8) & 255) + percent);
+    const b = Math.min(255, (num & 255) + percent);
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   };
 
   const getMousePosition = (e: React.MouseEvent) => {
@@ -248,12 +348,9 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     };
   };
 
-  const findNearestVertex = (mousePos: { x: number; y: number }) => {
+  const findNearestArrow = (mousePos: { x: number; y: number }): string | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
@@ -286,39 +383,38 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       return { x: screenX, y: screenY, z: worldZ };
     };
 
-    const vertices = [
-      project3D(faceOffsets.left, faceOffsets.bottom, faceOffsets.front),
-      project3D(faceOffsets.right, faceOffsets.bottom, faceOffsets.front),
-      project3D(faceOffsets.right, faceOffsets.top, faceOffsets.front),
-      project3D(faceOffsets.left, faceOffsets.top, faceOffsets.front),
-      project3D(faceOffsets.left, faceOffsets.bottom, faceOffsets.back),
-      project3D(faceOffsets.right, faceOffsets.bottom, faceOffsets.back),
-      project3D(faceOffsets.right, faceOffsets.top, faceOffsets.back),
-      project3D(faceOffsets.left, faceOffsets.top, faceOffsets.back),
+    // Check arrows
+    const arrows = [
+      { name: 'front', center: project3D(0, 0, faceOffsets.front) },
+      { name: 'back', center: project3D(0, 0, faceOffsets.back) },
+      { name: 'left', center: project3D(faceOffsets.left, 0, 0) },
+      { name: 'right', center: project3D(faceOffsets.right, 0, 0) },
+      { name: 'top', center: project3D(0, faceOffsets.top, 0) },
+      { name: 'bottom', center: project3D(0, faceOffsets.bottom, 0) },
     ];
 
-    for (let i = 0; i < vertices.length; i++) {
-      const vertex = vertices[i];
+    for (const arrow of arrows) {
       const distance = Math.sqrt(
-        Math.pow(mousePos.x - vertex.x, 2) + Math.pow(mousePos.y - vertex.y, 2)
+        Math.pow(mousePos.x - arrow.center.x, 2) + Math.pow(mousePos.y - arrow.center.y, 2)
       );
-      if (distance <= 8) {
-        return i;
+      if (distance <= 12) {
+        return arrow.name;
       }
     }
+    
     return null;
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const mousePos = getMousePosition(e);
-    const nearestVertex = findNearestVertex(mousePos);
+    const nearestArrow = findNearestArrow(mousePos);
     
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
     
-    if (nearestVertex !== null) {
-      setSelectedCorner(nearestVertex);
+    if (nearestArrow !== null) {
+      setSelectedArrow(nearestArrow);
       setDragMode('scale');
     } else if (e.button === 2) { // Right click
       setDragMode('position');
@@ -329,10 +425,10 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) {
-      // Update hover state for corners
+      // Update hover state for arrows
       const mousePos = getMousePosition(e);
-      const nearestVertex = findNearestVertex(mousePos);
-      setSelectedCorner(nearestVertex);
+      const nearestArrow = findNearestArrow(mousePos);
+      setHoveredArrow(nearestArrow);
       return;
     }
 
@@ -357,20 +453,35 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
           y: prev.position.y - deltaY * 0.5,
         }
       }));
-    } else if (dragMode === 'scale' && selectedCorner !== null) {
-      // Scale all faces proportionally
-      const scaleFactor = 1 + (deltaX + deltaY) * 0.002;
-      setCubeParams(prev => ({
-        ...prev,
-        faceOffsets: {
-          front: Math.max(25, Math.min(200, prev.faceOffsets.front * scaleFactor)),
-          back: Math.max(-200, Math.min(-25, prev.faceOffsets.back * scaleFactor)),
-          left: Math.max(-200, Math.min(-25, prev.faceOffsets.left * scaleFactor)),
-          right: Math.max(25, Math.min(200, prev.faceOffsets.right * scaleFactor)),
-          top: Math.max(25, Math.min(200, prev.faceOffsets.top * scaleFactor)),
-          bottom: Math.max(-200, Math.min(-25, prev.faceOffsets.bottom * scaleFactor))
+    } else if (dragMode === 'scale' && selectedArrow !== null) {
+      // Adjust individual face based on arrow
+      const delta = (deltaX + deltaY) * 0.5;
+      setCubeParams(prev => {
+        const newOffsets = { ...prev.faceOffsets };
+        
+        switch (selectedArrow) {
+          case 'front':
+            newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
+            break;
+          case 'back':
+            newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
+            break;
+          case 'left':
+            newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
+            break;
+          case 'right':
+            newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
+            break;
+          case 'top':
+            newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top + delta));
+            break;
+          case 'bottom':
+            newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom - delta));
+            break;
         }
-      }));
+        
+        return { ...prev, faceOffsets: newOffsets };
+      });
     }
 
     setDragStart({ x: e.clientX, y: e.clientY });
@@ -378,9 +489,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
 
   const handleMouseUp = () => {
     setIsDragging(false);
-    if (dragMode !== 'scale') {
-      setSelectedCorner(null);
-    }
+    setSelectedArrow(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -395,9 +504,9 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       <canvas
         ref={canvasRef}
         className={`absolute inset-0 pointer-events-auto ${
-          selectedCorner !== null ? 'cursor-nw-resize' : 
+          hoveredArrow !== null || selectedArrow !== null ? 'cursor-pointer' : 
           dragMode === 'position' ? 'cursor-move' : 'cursor-grab'
-        } ${isDragging ? 'active:cursor-grabbing' : ''}`}
+        } ${isDragging && dragMode === 'rotate' ? 'active:cursor-grabbing' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
