@@ -37,6 +37,18 @@ interface CubeParams {
     top: string;
     bottom: string;
   };
+  floor: {
+    enabled: boolean;
+    height: number;
+    azimuth: number;
+    color: string;
+  };
+  objects: Array<{
+    id: string;
+    type: 'car' | 'person';
+    position: { x: number; y: number; z: number };
+    rotation: number;
+  }>;
 }
 
 export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) => {
@@ -61,15 +73,22 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       right: "#f59e0b",   // Amber
       top: "#8b5cf6",     // Violet
       bottom: "#6b7280"   // Gray
-    }
+    },
+    floor: {
+      enabled: true,
+      height: -100,
+      azimuth: 0,
+      color: "#94a3b8"
+    },
+    objects: []
   });
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [dragMode, setDragMode] = useState<'rotate' | 'position' | 'scale'>('rotate');
-  const [selectedCorner, setSelectedCorner] = useState<number | null>(null);
+  const [dragMode, setDragMode] = useState<'rotate' | 'position' | 'arrow'>('rotate');
   const [selectedArrow, setSelectedArrow] = useState<string | null>(null);
   const [hoveredArrow, setHoveredArrow] = useState<string | null>(null);
+  const [selectedObject, setSelectedObject] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showCube) return;
@@ -195,17 +214,13 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       ctx.globalAlpha = 1;
     });
 
-    // Draw vertices as control points
-    vertices.forEach((vertex, i) => {
-      ctx.beginPath();
-      const radius = selectedCorner === i ? 6 : 4;
-      ctx.arc(vertex.x, vertex.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = selectedCorner === i ? "#fbbf24" : (vertex.z > 0 ? "#ffffff" : "#94a3b8");
-      ctx.fill();
-      ctx.strokeStyle = selectedCorner === i ? "#f59e0b" : "#1e293b";
-      ctx.lineWidth = selectedCorner === i ? 2 : 1;
-      ctx.stroke();
-    });
+    // Draw floor if enabled
+    if (cubeParams.floor.enabled) {
+      drawFloor(ctx, project3D);
+    }
+
+    // Draw objects (cars, people)
+    drawObjects(ctx, project3D);
 
     // Draw coordinate axes
     const axisLength = 60;
@@ -240,6 +255,84 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
 
     // Draw face arrows
     drawFaceArrows(ctx, project3D);
+  };
+
+  const drawFloor = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    const { floor } = cubeParams;
+    const size = 300;
+    const gridSpacing = 50;
+    
+    // Apply azimuth rotation to floor
+    const azimuthRad = (floor.azimuth * Math.PI) / 180;
+    
+    // Draw grid
+    ctx.strokeStyle = floor.color + '40';
+    ctx.lineWidth = 1;
+    
+    for (let i = -size; i <= size; i += gridSpacing) {
+      // Lines parallel to X axis
+      const x1 = i * Math.cos(azimuthRad);
+      const z1 = i * Math.sin(azimuthRad);
+      const start1 = project3D(x1 - size * Math.sin(azimuthRad), floor.height, z1 + size * Math.cos(azimuthRad));
+      const end1 = project3D(x1 + size * Math.sin(azimuthRad), floor.height, z1 - size * Math.cos(azimuthRad));
+      
+      ctx.beginPath();
+      ctx.moveTo(start1.x, start1.y);
+      ctx.lineTo(end1.x, end1.y);
+      ctx.stroke();
+      
+      // Lines parallel to Z axis
+      const x2 = i * Math.sin(azimuthRad);
+      const z2 = -i * Math.cos(azimuthRad);
+      const start2 = project3D(x2 - size * Math.cos(azimuthRad), floor.height, z2 - size * Math.sin(azimuthRad));
+      const end2 = project3D(x2 + size * Math.cos(azimuthRad), floor.height, z2 + size * Math.sin(azimuthRad));
+      
+      ctx.beginPath();
+      ctx.moveTo(start2.x, start2.y);
+      ctx.lineTo(end2.x, end2.y);
+      ctx.stroke();
+    }
+  };
+
+  const drawObjects = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    cubeParams.objects.forEach(obj => {
+      const pos = project3D(obj.position.x, obj.position.y, obj.position.z);
+      const isSelected = selectedObject === obj.id;
+      
+      if (obj.type === 'car') {
+        // Draw simple car representation
+        const width = 40;
+        const height = 20;
+        ctx.fillStyle = isSelected ? '#fbbf24' : '#6b7280';
+        ctx.fillRect(pos.x - width/2, pos.y - height/2, width, height);
+        ctx.strokeStyle = '#1e293b';
+        ctx.strokeRect(pos.x - width/2, pos.y - height/2, width, height);
+        
+        // Label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('CAR', pos.x, pos.y + 5);
+      } else if (obj.type === 'person') {
+        // Draw simple person representation
+        const radius = 8;
+        ctx.fillStyle = isSelected ? '#fbbf24' : '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y - 10, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.stroke();
+        
+        // Body
+        ctx.fillRect(pos.x - 5, pos.y, 10, 15);
+        
+        // Label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '8px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('P', pos.x, pos.y + 10);
+      }
+    });
   };
 
   const drawFaceArrows = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
@@ -318,13 +411,13 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       ctx.fillStyle = isSelected ? '#fbbf24' : (isHovered ? '#ffffff' : brightColor);
       ctx.fill();
 
-      // Draw interactive circle at arrow base
+      // Draw larger interactive circle at arrow end for better grab area
       ctx.beginPath();
-      ctx.arc(arrow.center.x, arrow.center.y, isSelected ? 8 : (isHovered ? 7 : 5), 0, 2 * Math.PI);
+      ctx.arc(arrow.end.x, arrow.end.y, isSelected ? 12 : (isHovered ? 10 : 8), 0, 2 * Math.PI);
       ctx.fillStyle = isSelected ? '#fbbf24' : (isHovered ? '#ffffff' : brightColor);
       ctx.fill();
       ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 2;
       ctx.stroke();
     });
   };
@@ -356,6 +449,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     const centerY = canvas.height / 2;
     
     const { position, rotation, faceOffsets, perspective } = cubeParams;
+    const arrowLength = 40;
     
     const project3D = (x: number, y: number, z: number) => {
       const cosRx = Math.cos(rotation.x * Math.PI / 180);
@@ -383,21 +477,21 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       return { x: screenX, y: screenY, z: worldZ };
     };
 
-    // Check arrows
+    // Check arrow endpoints (larger hit area)
     const arrows = [
-      { name: 'front', center: project3D(0, 0, faceOffsets.front) },
-      { name: 'back', center: project3D(0, 0, faceOffsets.back) },
-      { name: 'left', center: project3D(faceOffsets.left, 0, 0) },
-      { name: 'right', center: project3D(faceOffsets.right, 0, 0) },
-      { name: 'top', center: project3D(0, faceOffsets.top, 0) },
-      { name: 'bottom', center: project3D(0, faceOffsets.bottom, 0) },
+      { name: 'front', end: project3D(0, 0, faceOffsets.front + arrowLength) },
+      { name: 'back', end: project3D(0, 0, faceOffsets.back - arrowLength) },
+      { name: 'left', end: project3D(faceOffsets.left - arrowLength, 0, 0) },
+      { name: 'right', end: project3D(faceOffsets.right + arrowLength, 0, 0) },
+      { name: 'top', end: project3D(0, faceOffsets.top + arrowLength, 0) },
+      { name: 'bottom', end: project3D(0, faceOffsets.bottom - arrowLength, 0) },
     ];
 
     for (const arrow of arrows) {
       const distance = Math.sqrt(
-        Math.pow(mousePos.x - arrow.center.x, 2) + Math.pow(mousePos.y - arrow.center.y, 2)
+        Math.pow(mousePos.x - arrow.end.x, 2) + Math.pow(mousePos.y - arrow.end.y, 2)
       );
-      if (distance <= 12) {
+      if (distance <= 20) { // Larger hit area
         return arrow.name;
       }
     }
@@ -415,7 +509,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     
     if (nearestArrow !== null) {
       setSelectedArrow(nearestArrow);
-      setDragMode('scale');
+      setDragMode('arrow');
     } else if (e.button === 2) { // Right click
       setDragMode('position');
     } else { // Left click
@@ -453,8 +547,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
           y: prev.position.y - deltaY * 0.5,
         }
       }));
-    } else if (dragMode === 'scale' && selectedArrow !== null) {
-      // Adjust individual face based on arrow
+    } else if (dragMode === 'arrow' && selectedArrow !== null) {
+      // Adjust individual face based on arrow drag along its axis
       const delta = (deltaX + deltaY) * 0.5;
       setCubeParams(prev => {
         const newOffsets = { ...prev.faceOffsets };
@@ -492,8 +586,32 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     setSelectedArrow(null);
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setCubeParams(prev => ({
+      ...prev,
+      position: {
+        ...prev.position,
+        z: prev.position.z + e.deltaY * 0.1
+      }
+    }));
+  };
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent default right-click menu
+  };
+
+  const addObject = (type: 'car' | 'person') => {
+    const newObject = {
+      id: `${type}-${Date.now()}`,
+      type,
+      position: { x: 0, y: cubeParams.floor.height, z: 0 },
+      rotation: 0
+    };
+    setCubeParams(prev => ({
+      ...prev,
+      objects: [...prev.objects, newObject]
+    }));
   };
 
   if (!showCube) return null;
@@ -511,14 +629,94 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
         onContextMenu={handleContextMenu}
       />
 
       {/* 3D Cube Controls Panel */}
-      <div className="absolute top-4 right-4 bg-surface/95 backdrop-blur-sm rounded-lg border border-border p-3 space-y-3 w-64">
+      <div className="absolute top-4 right-4 bg-surface/95 backdrop-blur-sm rounded-lg border border-border p-3 space-y-3 w-64 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center space-x-2">
           <Box className="h-4 w-4 text-camera-accent" />
           <span className="text-sm font-medium text-camera-accent">3D FACE CONTROLS</span>
+        </div>
+
+        {/* Floor Controls */}
+        <div className="space-y-2 pt-2 border-t border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Floor</span>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={() => setCubeParams(prev => ({
+                ...prev,
+                floor: { ...prev.floor, enabled: !prev.floor.enabled }
+              }))}
+            >
+              {cubeParams.floor.enabled ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+          {cubeParams.floor.enabled && (
+            <>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs">Height</span>
+                  <span className="text-[10px] text-muted-foreground">{cubeParams.floor.height.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[cubeParams.floor.height]}
+                  onValueChange={([height]) => setCubeParams(prev => ({
+                    ...prev,
+                    floor: { ...prev.floor, height }
+                  }))}
+                  min={-200}
+                  max={200}
+                  step={5}
+                  className="h-2"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs">Azimuth</span>
+                  <span className="text-[10px] text-muted-foreground">{cubeParams.floor.azimuth.toFixed(0)}°</span>
+                </div>
+                <Slider
+                  value={[cubeParams.floor.azimuth]}
+                  onValueChange={([azimuth]) => setCubeParams(prev => ({
+                    ...prev,
+                    floor: { ...prev.floor, azimuth }
+                  }))}
+                  min={0}
+                  max={360}
+                  step={5}
+                  className="h-2"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Objects Controls */}
+        <div className="space-y-2 pt-2 border-t border-border">
+          <span className="text-xs font-medium">Objects</span>
+          <div className="flex space-x-1">
+            <Button 
+              size="sm" 
+              variant="ghost"
+              className="h-6 px-2 text-xs flex-1"
+              onClick={() => addObject('car')}
+            >
+              + Car
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              className="h-6 px-2 text-xs flex-1"
+              onClick={() => addObject('person')}
+            >
+              + Person
+            </Button>
+          </div>
         </div>
 
         {/* Face Controls - Individual Face Sliders */}
