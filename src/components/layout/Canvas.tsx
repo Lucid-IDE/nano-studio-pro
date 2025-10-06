@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon } from "lucide-react";
 import { LCDOverlay } from "./LCDOverlay";
-import { Cube3DOverlay } from "./Cube3DOverlay";
+import { Cube3DOverlay, CubeParams } from "./Cube3DOverlay";
 
 interface CanvasProps {
   showGrid: boolean;
@@ -11,9 +11,11 @@ interface CanvasProps {
   showOverlay?: boolean;
   overlayMode?: string;
   show3DCube?: boolean;
+  cubeParams?: CubeParams | null;
+  onCubeParamsChange?: (params: CubeParams) => void;
 }
 
-export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, overlayMode = "grid focus", show3DCube = false }: CanvasProps) => {
+export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, overlayMode = "grid focus", show3DCube = false, cubeParams, onCubeParamsChange }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasImage, setHasImage] = useState(false);
   const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
@@ -207,27 +209,21 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
             <div>
               <h3 className="text-lg font-medium text-foreground mb-2">No Image Loaded</h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                Upload an image to start editing, or use the AI tools to generate new content.
+                Upload an image using the button in the top bar, or use the AI tools to generate new content.
               </p>
-            </div>
-            <div className="pointer-events-auto">
-              <label htmlFor="canvas-file-upload">
-                <Button className="cursor-pointer">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Image
-                </Button>
-              </label>
-              <input
-                id="canvas-file-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
             </div>
           </div>
         </div>
       )}
+
+      {/* Hidden file input for top bar button */}
+      <input
+        id="canvas-file-upload"
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
 
       {/* LCD Overlay */}
       <LCDOverlay showOverlay={showOverlay} overlayMode={overlayMode} />
@@ -235,6 +231,8 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
       {/* 3D Cube Overlay */}
       <Cube3DOverlay 
         showCube={show3DCube} 
+        cubeParams={cubeParams}
+        onCubeParamsChange={onCubeParamsChange}
         onCubeChange={(params) => {
           console.log("3D Cube parameters changed:", params);
           // This will be used to generate AI prompts for scene movement

@@ -14,9 +14,11 @@ import {
 interface Cube3DOverlayProps {
   showCube: boolean;
   onCubeChange?: (params: CubeParams) => void;
+  cubeParams?: CubeParams;
+  onCubeParamsChange?: (params: CubeParams) => void;
 }
 
-interface CubeParams {
+export interface CubeParams {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   faceOffsets: {
@@ -51,9 +53,9 @@ interface CubeParams {
   }>;
 }
 
-export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) => {
+export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCubeParams, onCubeParamsChange }: Cube3DOverlayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [cubeParams, setCubeParams] = useState<CubeParams>({
+  const [internalCubeParams, setInternalCubeParams] = useState<CubeParams>({
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: 15, y: 45, z: 0 },
     faceOffsets: {
@@ -83,17 +85,39 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     objects: []
   });
 
+  const cubeParams = externalCubeParams || internalCubeParams;
+  const setCubeParams = onCubeParamsChange || setInternalCubeParams;
+
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [dragMode, setDragMode] = useState<'rotate' | 'position' | 'arrow'>('rotate');
+  const [dragMode, setDragMode] = useState<'rotate' | 'position' | 'arrow' | 'rotation-circle'>('rotate');
   const [selectedArrow, setSelectedArrow] = useState<string | null>(null);
   const [hoveredArrow, setHoveredArrow] = useState<string | null>(null);
   const [selectedObject, setSelectedObject] = useState<string | null>(null);
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
   useEffect(() => {
     if (!showCube) return;
     drawCube();
   }, [showCube, cubeParams]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setIsShiftPressed(true);
+      if (e.key === 'Control' || e.key === 'Meta') setIsCtrlPressed(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setIsShiftPressed(false);
+      if (e.key === 'Control' || e.key === 'Meta') setIsCtrlPressed(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     onCubeChange?.(cubeParams);
@@ -282,6 +306,9 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
 
     // Draw face arrows
     drawFaceArrows(ctx, project3D);
+
+    // Draw rotation circles
+    drawRotationCircles(ctx, project3D);
   };
 
   const drawFloor = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
@@ -449,6 +476,83 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     });
   };
 
+  const drawRotationCircles = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    const circleRadius = 100;
+    const segments = 32;
+    
+    // Draw X-axis rotation circle (YZ plane) - Red
+    ctx.strokeStyle = hoveredArrow === 'rotation-x' || selectedArrow === 'rotation-x' ? '#fbbf24' : '#ef444480';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= segments / 2; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const y = circleRadius * Math.cos(angle);
+      const z = circleRadius * Math.sin(angle);
+      const point = project3D(0, y, z);
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+    
+    // Draw sphere on X rotation circle
+    const xRotPoint = project3D(0, circleRadius * Math.cos(cubeParams.rotation.x * Math.PI / 180), circleRadius * Math.sin(cubeParams.rotation.x * Math.PI / 180));
+    ctx.beginPath();
+    ctx.arc(xRotPoint.x, xRotPoint.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'rotation-x' || selectedArrow === 'rotation-x' ? '#fbbf24' : '#ef4444';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw Y-axis rotation circle (XZ plane) - Green
+    ctx.strokeStyle = hoveredArrow === 'rotation-y' || selectedArrow === 'rotation-y' ? '#fbbf24' : '#10b98180';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= segments / 2; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const x = circleRadius * Math.cos(angle);
+      const z = circleRadius * Math.sin(angle);
+      const point = project3D(x, 0, z);
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+    
+    // Draw sphere on Y rotation circle
+    const yRotPoint = project3D(circleRadius * Math.cos(cubeParams.rotation.y * Math.PI / 180), 0, circleRadius * Math.sin(cubeParams.rotation.y * Math.PI / 180));
+    ctx.beginPath();
+    ctx.arc(yRotPoint.x, yRotPoint.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'rotation-y' || selectedArrow === 'rotation-y' ? '#fbbf24' : '#10b981';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw Z-axis rotation circle (XY plane) - Blue
+    ctx.strokeStyle = hoveredArrow === 'rotation-z' || selectedArrow === 'rotation-z' ? '#fbbf24' : '#3b82f680';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= segments / 2; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const x = circleRadius * Math.cos(angle);
+      const y = circleRadius * Math.sin(angle);
+      const point = project3D(x, y, 0);
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+    
+    // Draw sphere on Z rotation circle
+    const zRotPoint = project3D(circleRadius * Math.cos(cubeParams.rotation.z * Math.PI / 180), circleRadius * Math.sin(cubeParams.rotation.z * Math.PI / 180), 0);
+    ctx.beginPath();
+    ctx.arc(zRotPoint.x, zRotPoint.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'rotation-z' || selectedArrow === 'rotation-z' ? '#fbbf24' : '#3b82f6';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
   const brightenColor = (hex: string, percent: number): string => {
     const num = parseInt(hex.replace('#', ''), 16);
     const r = Math.min(255, ((num >> 16) & 255) + percent);
@@ -514,6 +618,23 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       { name: 'bottom', end: project3D(0, faceOffsets.bottom - arrowLength, 0) },
     ];
 
+    // Check rotation circles
+    const circleRadius = 100;
+    const rotationSpheres = [
+      { name: 'rotation-x', point: project3D(0, circleRadius * Math.cos(cubeParams.rotation.x * Math.PI / 180), circleRadius * Math.sin(cubeParams.rotation.x * Math.PI / 180)) },
+      { name: 'rotation-y', point: project3D(circleRadius * Math.cos(cubeParams.rotation.y * Math.PI / 180), 0, circleRadius * Math.sin(cubeParams.rotation.y * Math.PI / 180)) },
+      { name: 'rotation-z', point: project3D(circleRadius * Math.cos(cubeParams.rotation.z * Math.PI / 180), circleRadius * Math.sin(cubeParams.rotation.z * Math.PI / 180), 0) },
+    ];
+    
+    for (const sphere of rotationSpheres) {
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - sphere.point.x, 2) + Math.pow(mousePos.y - sphere.point.y, 2)
+      );
+      if (distance <= 20) {
+        return sphere.name;
+      }
+    }
+
     // Check axis balls (X, Y, Z)
     const axisLength = 60;
     const axisBalls = [
@@ -522,7 +643,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       { name: 'axis-z', end: project3D(0, 0, axisLength) },
     ];
 
-    // Check axis balls first (higher priority)
+    // Check axis balls (higher priority)
     for (const ball of axisBalls) {
       const distance = Math.sqrt(
         Math.pow(mousePos.x - ball.end.x, 2) + Math.pow(mousePos.y - ball.end.y, 2)
@@ -555,7 +676,11 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     
     if (nearestArrow !== null) {
       setSelectedArrow(nearestArrow);
-      setDragMode('arrow');
+      if (nearestArrow.startsWith('rotation-')) {
+        setDragMode('rotation-circle');
+      } else {
+        setDragMode('arrow');
+      }
     } else if (e.button === 2) { // Right click
       setDragMode('position');
     } else { // Left click
@@ -593,6 +718,26 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
           y: prev.position.y - deltaY * 0.5,
         }
       }));
+    } else if (dragMode === 'rotation-circle' && selectedArrow !== null) {
+      // Handle rotation circle dragging
+      setCubeParams(prev => {
+        const newRotation = { ...prev.rotation };
+        const delta = deltaX * 0.5;
+        
+        switch (selectedArrow) {
+          case 'rotation-x':
+            newRotation.x = (prev.rotation.x + delta) % 360;
+            break;
+          case 'rotation-y':
+            newRotation.y = (prev.rotation.y + delta) % 360;
+            break;
+          case 'rotation-z':
+            newRotation.z = (prev.rotation.z + delta) % 360;
+            break;
+        }
+        
+        return { ...prev, rotation: newRotation };
+      });
     } else if (dragMode === 'arrow' && selectedArrow !== null) {
       // Handle axis ball dragging (move cube in X/Y/Z planes)
       if (selectedArrow.startsWith('axis-')) {
@@ -618,35 +763,66 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
         });
       } else {
         // Adjust individual face based on arrow drag along its axis
-        // Fixed: inverted logic for correct push/pull behavior
         const delta = (deltaX - deltaY) * 0.5;
+        
         setCubeParams(prev => {
           const newOffsets = { ...prev.faceOffsets };
           
+          // Ctrl modifier: scale entire cube
+          if (isCtrlPressed) {
+            const scaleFactor = 1 + (delta * 0.01);
+            Object.keys(newOffsets).forEach(key => {
+              newOffsets[key as keyof typeof newOffsets] = prev.faceOffsets[key as keyof typeof newOffsets] * scaleFactor;
+            });
+            return { ...prev, faceOffsets: newOffsets };
+          }
+          
+          // Helper to get mirror face name
+          const getMirrorFace = (face: string): keyof typeof newOffsets | null => {
+            const mirrors: Record<string, keyof typeof newOffsets> = {
+              front: 'back', back: 'front',
+              left: 'right', right: 'left',
+              top: 'bottom', bottom: 'top'
+            };
+            return mirrors[face] || null;
+          };
+          
           switch (selectedArrow) {
             case 'front':
-              // Pulling arrow out increases positive offset
               newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
+              if (isShiftPressed) {
+                newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
+              }
               break;
             case 'back':
-              // Pulling arrow out decreases negative offset (moves it back)
               newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
+              if (isShiftPressed) {
+                newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
+              }
               break;
             case 'left':
-              // Pulling arrow out decreases negative offset (moves it left)
               newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
+              if (isShiftPressed) {
+                newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
+              }
               break;
             case 'right':
-              // Pulling arrow out increases positive offset
               newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
+              if (isShiftPressed) {
+                newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
+              }
               break;
             case 'top':
-              // Pulling arrow up increases positive offset
               newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - delta));
+              if (isShiftPressed) {
+                newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + delta));
+              }
               break;
             case 'bottom':
-              // Pulling arrow down decreases negative offset
               newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + delta));
+              if (isShiftPressed) {
+                newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - delta));
+              }
               break;
           }
           
@@ -679,363 +855,21 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     e.preventDefault(); // Prevent default right-click menu
   };
 
-  const addObject = (type: 'car' | 'person') => {
-    const newObject = {
-      id: `${type}-${Date.now()}`,
-      type,
-      position: { x: 0, y: cubeParams.floor.height, z: 0 },
-      rotation: 0
-    };
-    setCubeParams(prev => ({
-      ...prev,
-      objects: [...prev.objects, newObject]
-    }));
-  };
-
   if (!showCube) return null;
 
   return (
-    <>
-      {/* 3D Canvas Overlay */}
-      <canvas
-        ref={canvasRef}
-        className={`absolute inset-0 pointer-events-auto ${
-          hoveredArrow !== null || selectedArrow !== null ? 'cursor-pointer' : 
-          dragMode === 'position' ? 'cursor-move' : 'cursor-grab'
-        } ${isDragging && dragMode === 'rotate' ? 'active:cursor-grabbing' : ''}`}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        onContextMenu={handleContextMenu}
-      />
-
-      {/* 3D Cube Controls Panel - Moved to bottom left */}
-      <div className="absolute bottom-4 left-4 bg-surface/95 backdrop-blur-sm rounded-lg border border-border p-3 space-y-3 w-64 max-h-[60vh] overflow-y-auto">
-        <div className="flex items-center space-x-2">
-          <Box className="h-4 w-4 text-camera-accent" />
-          <span className="text-sm font-medium text-camera-accent">3D FACE CONTROLS</span>
-        </div>
-
-        {/* Floor Controls */}
-        <div className="space-y-2 pt-2 border-t border-border">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium">Floor</span>
-            <Button 
-              size="sm" 
-              variant="ghost"
-              className="h-6 px-2 text-xs"
-              onClick={() => setCubeParams(prev => ({
-                ...prev,
-                floor: { ...prev.floor, enabled: !prev.floor.enabled }
-              }))}
-            >
-              {cubeParams.floor.enabled ? 'Hide' : 'Show'}
-            </Button>
-          </div>
-          {cubeParams.floor.enabled && (
-            <>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs">Height</span>
-                  <span className="text-[10px] text-muted-foreground">{cubeParams.floor.height.toFixed(0)}</span>
-                </div>
-                <Slider
-                  value={[cubeParams.floor.height]}
-                  onValueChange={([height]) => setCubeParams(prev => ({
-                    ...prev,
-                    floor: { ...prev.floor, height }
-                  }))}
-                  min={-200}
-                  max={200}
-                  step={5}
-                  className="h-2"
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs">Azimuth</span>
-                  <span className="text-[10px] text-muted-foreground">{cubeParams.floor.azimuth.toFixed(0)}°</span>
-                </div>
-                <Slider
-                  value={[cubeParams.floor.azimuth]}
-                  onValueChange={([azimuth]) => setCubeParams(prev => ({
-                    ...prev,
-                    floor: { ...prev.floor, azimuth }
-                  }))}
-                  min={0}
-                  max={360}
-                  step={5}
-                  className="h-2"
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Objects Controls */}
-        <div className="space-y-2 pt-2 border-t border-border">
-          <span className="text-xs font-medium">Objects</span>
-          <div className="flex space-x-1">
-            <Button 
-              size="sm" 
-              variant="ghost"
-              className="h-6 px-2 text-xs flex-1"
-              onClick={() => addObject('car')}
-            >
-              + Car
-            </Button>
-            <Button 
-              size="sm" 
-              variant="ghost"
-              className="h-6 px-2 text-xs flex-1"
-              onClick={() => addObject('person')}
-            >
-              + Person
-            </Button>
-          </div>
-        </div>
-
-        {/* Face Controls - Individual Face Sliders */}
-        <div className="space-y-2">
-          <span className="text-xs font-medium">Adjust Each Face</span>
-          
-          {/* Front Face */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded border border-border cursor-pointer" 
-                  style={{ backgroundColor: cubeParams.walls.front }}
-                ></div>
-                <span className="text-xs">Front</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.front.toFixed(0)}</span>
-            </div>
-            <Slider
-              value={[cubeParams.faceOffsets.front]}
-              onValueChange={([front]) => setCubeParams(prev => ({
-                ...prev,
-                faceOffsets: { ...prev.faceOffsets, front }
-              }))}
-              min={25}
-              max={200}
-              step={5}
-              className="h-2"
-            />
-          </div>
-
-          {/* Back Face */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded border border-border cursor-pointer" 
-                  style={{ backgroundColor: cubeParams.walls.back }}
-                ></div>
-                <span className="text-xs">Back</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.back.toFixed(0)}</span>
-            </div>
-            <Slider
-              value={[cubeParams.faceOffsets.back]}
-              onValueChange={([back]) => setCubeParams(prev => ({
-                ...prev,
-                faceOffsets: { ...prev.faceOffsets, back }
-              }))}
-              min={-200}
-              max={-25}
-              step={5}
-              className="h-2"
-            />
-          </div>
-
-          {/* Left Face */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded border border-border cursor-pointer" 
-                  style={{ backgroundColor: cubeParams.walls.left }}
-                ></div>
-                <span className="text-xs">Left</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.left.toFixed(0)}</span>
-            </div>
-            <Slider
-              value={[cubeParams.faceOffsets.left]}
-              onValueChange={([left]) => setCubeParams(prev => ({
-                ...prev,
-                faceOffsets: { ...prev.faceOffsets, left }
-              }))}
-              min={-200}
-              max={-25}
-              step={5}
-              className="h-2"
-            />
-          </div>
-
-          {/* Right Face */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded border border-border cursor-pointer" 
-                  style={{ backgroundColor: cubeParams.walls.right }}
-                ></div>
-                <span className="text-xs">Right</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.right.toFixed(0)}</span>
-            </div>
-            <Slider
-              value={[cubeParams.faceOffsets.right]}
-              onValueChange={([right]) => setCubeParams(prev => ({
-                ...prev,
-                faceOffsets: { ...prev.faceOffsets, right }
-              }))}
-              min={25}
-              max={200}
-              step={5}
-              className="h-2"
-            />
-          </div>
-
-          {/* Top Face */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded border border-border cursor-pointer" 
-                  style={{ backgroundColor: cubeParams.walls.top }}
-                ></div>
-                <span className="text-xs">Top</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.top.toFixed(0)}</span>
-            </div>
-            <Slider
-              value={[cubeParams.faceOffsets.top]}
-              onValueChange={([top]) => setCubeParams(prev => ({
-                ...prev,
-                faceOffsets: { ...prev.faceOffsets, top }
-              }))}
-              min={25}
-              max={200}
-              step={5}
-              className="h-2"
-            />
-          </div>
-
-          {/* Bottom Face */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-4 rounded border border-border cursor-pointer" 
-                  style={{ backgroundColor: cubeParams.walls.bottom }}
-                ></div>
-                <span className="text-xs">Bottom</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground">{cubeParams.faceOffsets.bottom.toFixed(0)}</span>
-            </div>
-            <Slider
-              value={[cubeParams.faceOffsets.bottom]}
-              onValueChange={([bottom]) => setCubeParams(prev => ({
-                ...prev,
-                faceOffsets: { ...prev.faceOffsets, bottom }
-              }))}
-              min={-200}
-              max={-25}
-              step={5}
-              className="h-2"
-            />
-          </div>
-        </div>
-
-        {/* Rotation Controls */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <RotateCw className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium">Rotation</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">Pitch</div>
-              <Slider
-                value={[cubeParams.rotation.x]}
-                onValueChange={([x]) => setCubeParams(prev => ({
-                  ...prev,
-                  rotation: { ...prev.rotation, x }
-                }))}
-                min={-90}
-                max={90}
-                step={1}
-                className="h-2"
-              />
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">Yaw</div>
-              <Slider
-                value={[cubeParams.rotation.y]}
-                onValueChange={([y]) => setCubeParams(prev => ({
-                  ...prev,
-                  rotation: { ...prev.rotation, y }
-                }))}
-                min={0}
-                max={360}
-                step={1}
-                className="h-2"
-              />
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground mb-1">Roll</div>
-              <Slider
-                value={[cubeParams.rotation.z]}
-                onValueChange={([z]) => setCubeParams(prev => ({
-                  ...prev,
-                  rotation: { ...prev.rotation, z }
-                }))}
-                min={-45}
-                max={45}
-                step={1}
-                className="h-2"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex space-x-1">
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-            onClick={() => setCubeParams(prev => ({ 
-              ...prev, 
-              rotation: { x: 0, y: 0, z: 0 },
-              faceOffsets: { front: 100, back: -100, left: -100, right: 100, top: 100, bottom: -100 }
-            }))}
-          >
-            Reset
-          </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-            onClick={() => setCubeParams(prev => ({ ...prev, rotation: { x: 15, y: 45, z: 0 } }))}
-          >
-            Iso
-          </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-            onClick={() => setCubeParams(prev => ({ ...prev, rotation: { x: 0, y: 90, z: 0 } }))}
-          >
-            Side
-          </Button>
-        </div>
-      </div>
-    </>
+    <canvas
+      ref={canvasRef}
+      className={`absolute inset-0 pointer-events-auto ${
+        hoveredArrow !== null || selectedArrow !== null ? 'cursor-pointer' : 
+        dragMode === 'position' ? 'cursor-move' : 'cursor-grab'
+      } ${isDragging && dragMode === 'rotate' ? 'active:cursor-grabbing' : ''}`}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
+      onContextMenu={handleContextMenu}
+    />
   );
 };

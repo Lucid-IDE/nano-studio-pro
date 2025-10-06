@@ -33,6 +33,8 @@ interface RightPanelProps {
   show3DCube: boolean;
   onShow3DCubeToggle: (show: boolean) => void;
   onSettingChange?: (setting: string, value: any) => void;
+  cubeParams?: any;
+  onCubeParamsChange?: (params: any) => void;
 }
 
 export const RightPanel = ({ 
@@ -46,7 +48,9 @@ export const RightPanel = ({
   onOverlayModeChange,
   show3DCube,
   onShow3DCubeToggle,
-  onSettingChange 
+  onSettingChange,
+  cubeParams,
+  onCubeParamsChange
 }: RightPanelProps) => {
   const [activePanel, setActivePanel] = useState("camera");
   
@@ -441,73 +445,331 @@ export const RightPanel = ({
     />
   );
 
-  const render3DGuideControls = () => (
-    <div className="space-y-4">
-      {/* 3D Cube Toggle */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-foreground">3D Perspective Guide</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onShow3DCubeToggle(!show3DCube)}
-            className="h-7 w-12 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-          >
-            {show3DCube ? (
-              <ToggleRight className="h-4 w-4 text-success" />
-            ) : (
-              <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
+  const render3DGuideControls = () => {
+    const defaultCubeParams = {
+      faceOffsets: { front: 100, back: -100, left: -100, right: 100, top: 100, bottom: -100 },
+      rotation: { x: 15, y: 45, z: 0 },
+      floor: { enabled: true, height: -100, azimuth: 0 },
+      walls: { front: "#3b82f6", back: "#ef4444", left: "#10b981", right: "#f59e0b", top: "#8b5cf6", bottom: "#6b7280" }
+    };
+    
+    const params = cubeParams || defaultCubeParams;
+    
+    const updateCubeParams = (updates: any) => {
+      if (onCubeParamsChange) {
+        onCubeParamsChange({ ...params, ...updates });
+      }
+    };
+    
+    return (
+      <div className="space-y-4">
+        {/* 3D Cube Toggle */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">3D Perspective Guide</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onShow3DCubeToggle(!show3DCube)}
+              className="h-7 w-12 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+            >
+              {show3DCube ? (
+                <ToggleRight className="h-4 w-4 text-success" />
+              ) : (
+                <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Drag arrows to adjust faces. Shift+drag for mirror faces. Ctrl+drag to scale entire cube. Drag rotation circles to rotate.
+          </p>
         </div>
-        <p className="text-[10px] text-muted-foreground">
-          Interactive 3D cube to visualize and control perspective, depth, and spatial relationships in your scene.
-        </p>
-      </div>
 
-      {/* 3D Guide Features */}
-      <div className="space-y-2">
-        <span className="text-xs font-medium text-foreground">Guide Features</span>
-        <div className="space-y-1">
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Front Wall (Blue) - Main subject area</span>
-          </div>
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
-            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span>Back Wall (Red) - Background area</span>
-          </div>
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span>Left Wall (Green) - Left boundary</span>
-          </div>
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
-            <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-            <span>Right Wall (Amber) - Right boundary</span>
-          </div>
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foregreen">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-            <span>Ceiling (Purple) - Top boundary</span>
-          </div>
-          <div className="flex items-center space-x-2 text-[10px] text-muted-foreground">
-            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-            <span>Floor (Gray) - Bottom boundary</span>
-          </div>
-        </div>
-      </div>
+        {show3DCube && cubeParams && (
+          <>
+            {/* Floor Controls */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium">Floor</span>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => updateCubeParams({
+                    floor: { ...params.floor, enabled: !params.floor.enabled }
+                  })}
+                >
+                  {params.floor?.enabled ? 'Hide' : 'Show'}
+                </Button>
+              </div>
+              {params.floor?.enabled && (
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs">Height</span>
+                      <span className="text-[10px] text-muted-foreground">{params.floor.height.toFixed(0)}</span>
+                    </div>
+                    <Slider
+                      value={[params.floor.height]}
+                      onValueChange={([height]) => updateCubeParams({
+                        floor: { ...params.floor, height }
+                      })}
+                      min={-200}
+                      max={200}
+                      step={5}
+                      className="h-2"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs">Azimuth</span>
+                      <span className="text-[10px] text-muted-foreground">{params.floor.azimuth.toFixed(0)}°</span>
+                    </div>
+                    <Slider
+                      value={[params.floor.azimuth]}
+                      onValueChange={([azimuth]) => updateCubeParams({
+                        floor: { ...params.floor, azimuth }
+                      })}
+                      min={0}
+                      max={360}
+                      step={5}
+                      className="h-2"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
 
-      {/* Instructions */}
-      <div className="space-y-2">
-        <span className="text-xs font-medium text-foreground">Instructions</span>
-        <div className="text-[10px] text-muted-foreground space-y-1">
-          <p>• Drag cube to rotate and view different angles</p>
-          <p>• Use controls panel to fine-tune position and scale</p>
-          <p>• Match cube edges with image perspective</p>
-          <p>• Generate AI prompts based on 3D positioning</p>
-        </div>
+            {/* Face Controls */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <span className="text-xs font-medium">Face Offsets</span>
+              
+              {/* Front Face */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded border border-border" 
+                      style={{ backgroundColor: params.walls?.front }}
+                    ></div>
+                    <span className="text-xs">Front</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{params.faceOffsets.front.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[params.faceOffsets.front]}
+                  onValueChange={([front]) => updateCubeParams({
+                    faceOffsets: { ...params.faceOffsets, front }
+                  })}
+                  min={25}
+                  max={200}
+                  step={5}
+                  className="h-1.5"
+                />
+              </div>
+
+              {/* Back Face */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded border border-border" 
+                      style={{ backgroundColor: params.walls?.back }}
+                    ></div>
+                    <span className="text-xs">Back</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{params.faceOffsets.back.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[params.faceOffsets.back]}
+                  onValueChange={([back]) => updateCubeParams({
+                    faceOffsets: { ...params.faceOffsets, back }
+                  })}
+                  min={-200}
+                  max={-25}
+                  step={5}
+                  className="h-1.5"
+                />
+              </div>
+
+              {/* Left Face */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded border border-border" 
+                      style={{ backgroundColor: params.walls?.left }}
+                    ></div>
+                    <span className="text-xs">Left</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{params.faceOffsets.left.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[params.faceOffsets.left]}
+                  onValueChange={([left]) => updateCubeParams({
+                    faceOffsets: { ...params.faceOffsets, left }
+                  })}
+                  min={-200}
+                  max={-25}
+                  step={5}
+                  className="h-1.5"
+                />
+              </div>
+
+              {/* Right Face */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded border border-border" 
+                      style={{ backgroundColor: params.walls?.right }}
+                    ></div>
+                    <span className="text-xs">Right</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{params.faceOffsets.right.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[params.faceOffsets.right]}
+                  onValueChange={([right]) => updateCubeParams({
+                    faceOffsets: { ...params.faceOffsets, right }
+                  })}
+                  min={25}
+                  max={200}
+                  step={5}
+                  className="h-1.5"
+                />
+              </div>
+
+              {/* Top Face */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded border border-border" 
+                      style={{ backgroundColor: params.walls?.top }}
+                    ></div>
+                    <span className="text-xs">Top</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{params.faceOffsets.top.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[params.faceOffsets.top]}
+                  onValueChange={([top]) => updateCubeParams({
+                    faceOffsets: { ...params.faceOffsets, top }
+                  })}
+                  min={25}
+                  max={200}
+                  step={5}
+                  className="h-1.5"
+                />
+              </div>
+
+              {/* Bottom Face */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-3 h-3 rounded border border-border" 
+                      style={{ backgroundColor: params.walls?.bottom }}
+                    ></div>
+                    <span className="text-xs">Bottom</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{params.faceOffsets.bottom.toFixed(0)}</span>
+                </div>
+                <Slider
+                  value={[params.faceOffsets.bottom]}
+                  onValueChange={([bottom]) => updateCubeParams({
+                    faceOffsets: { ...params.faceOffsets, bottom }
+                  })}
+                  min={-200}
+                  max={-25}
+                  step={5}
+                  className="h-1.5"
+                />
+              </div>
+            </div>
+
+            {/* Rotation Controls */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <span className="text-xs font-medium">Rotation</span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground">X</span>
+                  <Slider
+                    value={[params.rotation.x]}
+                    onValueChange={([x]) => updateCubeParams({
+                      rotation: { ...params.rotation, x }
+                    })}
+                    min={-90}
+                    max={90}
+                    step={1}
+                    className="h-1.5"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground">Y</span>
+                  <Slider
+                    value={[params.rotation.y]}
+                    onValueChange={([y]) => updateCubeParams({
+                      rotation: { ...params.rotation, y }
+                    })}
+                    min={0}
+                    max={360}
+                    step={1}
+                    className="h-1.5"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground">Z</span>
+                  <Slider
+                    value={[params.rotation.z]}
+                    onValueChange={([z]) => updateCubeParams({
+                      rotation: { ...params.rotation, z }
+                    })}
+                    min={-45}
+                    max={45}
+                    step={1}
+                    className="h-1.5"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex space-x-1">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                onClick={() => updateCubeParams({ 
+                  rotation: { x: 0, y: 0, z: 0 },
+                  faceOffsets: { front: 100, back: -100, left: -100, right: 100, top: 100, bottom: -100 }
+                })}
+              >
+                Reset
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                onClick={() => updateCubeParams({ rotation: { x: 15, y: 45, z: 0 } })}
+              >
+                Iso
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-7 px-2 text-xs bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                onClick={() => updateCubeParams({ rotation: { x: 0, y: 90, z: 0 } })}
+              >
+                Side
+              </Button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="w-80 h-full bg-gradient-surface shadow-3d-panel border-l border-camera-metal/20 flex">

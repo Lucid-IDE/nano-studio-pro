@@ -4,6 +4,7 @@ import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { VideoTimeline } from "./VideoTimeline";
 import { CameraViewfinder } from "./CameraViewfinder";
+import { CubeParams } from "./Cube3DOverlay";
 
 export const MainEditor = () => {
   const [activeTool, setActiveTool] = useState<string>("select");
@@ -12,6 +13,8 @@ export const MainEditor = () => {
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayMode, setOverlayMode] = useState("grid focus");
   const [show3DCube, setShow3DCube] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(true);
+  const [cubeParams, setCubeParams] = useState<CubeParams | null>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Trigger the hidden file input in Canvas
@@ -46,6 +49,8 @@ export const MainEditor = () => {
               showOverlay={showOverlay}
               overlayMode={overlayMode}
               show3DCube={show3DCube}
+              cubeParams={cubeParams}
+              onCubeParamsChange={setCubeParams}
             />
           </div>
         </div>
@@ -61,12 +66,16 @@ export const MainEditor = () => {
           onOverlayModeChange={setOverlayMode}
           show3DCube={show3DCube}
           onShow3DCubeToggle={setShow3DCube}
+          cubeParams={cubeParams}
+          onCubeParamsChange={setCubeParams}
         />
       </div>
       
-      <div className="flex-shrink-0">
-        <VideoTimeline />
-      </div>
+      {showTimeline && (
+        <div className="flex-shrink-0">
+          <VideoTimeline onClose={() => setShowTimeline(false)} />
+        </div>
+      )}
     </div>
   );
 };

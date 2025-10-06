@@ -16,7 +16,8 @@ import {
   Film,
   Clock,
   Undo2,
-  Redo2
+  Redo2,
+  X
 } from "lucide-react";
 
 interface Frame {
@@ -32,7 +33,11 @@ interface Frame {
   prompt: string;
 }
 
-export const VideoTimeline = () => {
+interface VideoTimelineProps {
+  onClose?: () => void;
+}
+
+export const VideoTimeline = ({ onClose }: VideoTimelineProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [frames, setFrames] = useState<Frame[]>([
@@ -162,6 +167,18 @@ export const VideoTimeline = () => {
             <Zap className="h-3 w-3 mr-1" />
             Generate Video
           </Button>
+          
+          {/* Close Timeline */}
+          {onClose && (
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-8 w-8 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+              onClick={onClose}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </div>
 
