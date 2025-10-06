@@ -222,7 +222,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     // Draw objects (cars, people)
     drawObjects(ctx, project3D);
 
-    // Draw coordinate axes
+    // Draw coordinate axes with draggable balls
     const axisLength = 60;
     const origin = project3D(0, 0, 0);
     
@@ -234,6 +234,15 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     ctx.strokeStyle = "#ef4444";
     ctx.lineWidth = 3;
     ctx.stroke();
+    
+    // X axis ball
+    ctx.beginPath();
+    ctx.arc(xEnd.x, xEnd.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'axis-x' || selectedArrow === 'axis-x' ? "#fbbf24" : "#ef4444";
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
     // Y axis (green)
     const yEnd = project3D(0, axisLength, 0);
@@ -243,6 +252,15 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     ctx.strokeStyle = "#10b981";
     ctx.lineWidth = 3;
     ctx.stroke();
+    
+    // Y axis ball
+    ctx.beginPath();
+    ctx.arc(yEnd.x, yEnd.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'axis-y' || selectedArrow === 'axis-y' ? "#fbbf24" : "#10b981";
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
     // Z axis (blue)
     const zEnd = project3D(0, 0, axisLength);
@@ -251,6 +269,15 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
     ctx.lineTo(zEnd.x, zEnd.y);
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // Z axis ball
+    ctx.beginPath();
+    ctx.arc(zEnd.x, zEnd.y, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'axis-z' || selectedArrow === 'axis-z' ? "#fbbf24" : "#3b82f6";
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     // Draw face arrows
@@ -487,6 +514,25 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
       { name: 'bottom', end: project3D(0, faceOffsets.bottom - arrowLength, 0) },
     ];
 
+    // Check axis balls (X, Y, Z)
+    const axisLength = 60;
+    const axisBalls = [
+      { name: 'axis-x', end: project3D(axisLength, 0, 0) },
+      { name: 'axis-y', end: project3D(0, axisLength, 0) },
+      { name: 'axis-z', end: project3D(0, 0, axisLength) },
+    ];
+
+    // Check axis balls first (higher priority)
+    for (const ball of axisBalls) {
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - ball.end.x, 2) + Math.pow(mousePos.y - ball.end.y, 2)
+      );
+      if (distance <= 20) {
+        return ball.name;
+      }
+    }
+
+    // Then check face arrows
     for (const arrow of arrows) {
       const distance = Math.sqrt(
         Math.pow(mousePos.x - arrow.end.x, 2) + Math.pow(mousePos.y - arrow.end.y, 2)
@@ -548,34 +594,65 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
         }
       }));
     } else if (dragMode === 'arrow' && selectedArrow !== null) {
-      // Adjust individual face based on arrow drag along its axis
-      const delta = (deltaX + deltaY) * 0.5;
-      setCubeParams(prev => {
-        const newOffsets = { ...prev.faceOffsets };
-        
-        switch (selectedArrow) {
-          case 'front':
-            newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
-            break;
-          case 'back':
-            newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
-            break;
-          case 'left':
-            newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
-            break;
-          case 'right':
-            newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
-            break;
-          case 'top':
-            newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top + delta));
-            break;
-          case 'bottom':
-            newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom - delta));
-            break;
-        }
-        
-        return { ...prev, faceOffsets: newOffsets };
-      });
+      // Handle axis ball dragging (move cube in X/Y/Z planes)
+      if (selectedArrow.startsWith('axis-')) {
+        setCubeParams(prev => {
+          const newPosition = { ...prev.position };
+          
+          switch (selectedArrow) {
+            case 'axis-x':
+              // X axis: left-right movement
+              newPosition.x = prev.position.x + deltaX * 0.8;
+              break;
+            case 'axis-y':
+              // Y axis: up-down movement
+              newPosition.y = prev.position.y - deltaY * 0.8;
+              break;
+            case 'axis-z':
+              // Z axis: forward-backward movement (combined XY drag for intuitive control)
+              newPosition.z = prev.position.z + (deltaX - deltaY) * 0.4;
+              break;
+          }
+          
+          return { ...prev, position: newPosition };
+        });
+      } else {
+        // Adjust individual face based on arrow drag along its axis
+        // Fixed: inverted logic for correct push/pull behavior
+        const delta = (deltaX - deltaY) * 0.5;
+        setCubeParams(prev => {
+          const newOffsets = { ...prev.faceOffsets };
+          
+          switch (selectedArrow) {
+            case 'front':
+              // Pulling arrow out increases positive offset
+              newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
+              break;
+            case 'back':
+              // Pulling arrow out decreases negative offset (moves it back)
+              newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
+              break;
+            case 'left':
+              // Pulling arrow out decreases negative offset (moves it left)
+              newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
+              break;
+            case 'right':
+              // Pulling arrow out increases positive offset
+              newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
+              break;
+            case 'top':
+              // Pulling arrow up increases positive offset
+              newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - delta));
+              break;
+            case 'bottom':
+              // Pulling arrow down decreases negative offset
+              newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + delta));
+              break;
+          }
+          
+          return { ...prev, faceOffsets: newOffsets };
+        });
+      }
     }
 
     setDragStart({ x: e.clientX, y: e.clientY });
@@ -588,11 +665,12 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    // Mouse scroll moves cube toward/away from camera (zoom in/out)
     setCubeParams(prev => ({
       ...prev,
       position: {
         ...prev.position,
-        z: prev.position.z + e.deltaY * 0.1
+        z: prev.position.z - e.deltaY * 0.5
       }
     }));
   };
@@ -633,8 +711,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange }: Cube3DOverlayProps) =>
         onContextMenu={handleContextMenu}
       />
 
-      {/* 3D Cube Controls Panel */}
-      <div className="absolute top-4 right-4 bg-surface/95 backdrop-blur-sm rounded-lg border border-border p-3 space-y-3 w-64 max-h-[80vh] overflow-y-auto">
+      {/* 3D Cube Controls Panel - Moved to bottom left */}
+      <div className="absolute bottom-4 left-4 bg-surface/95 backdrop-blur-sm rounded-lg border border-border p-3 space-y-3 w-64 max-h-[60vh] overflow-y-auto">
         <div className="flex items-center space-x-2">
           <Box className="h-4 w-4 text-camera-accent" />
           <span className="text-sm font-medium text-camera-accent">3D FACE CONTROLS</span>

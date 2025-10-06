@@ -211,14 +211,14 @@ export const Canvas = ({ showGrid, zoomLevel, activeTool, showOverlay = true, ov
               </p>
             </div>
             <div className="pointer-events-auto">
-              <label htmlFor="file-upload">
+              <label htmlFor="canvas-file-upload">
                 <Button className="cursor-pointer">
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Image
                 </Button>
               </label>
               <input
-                id="file-upload"
+                id="canvas-file-upload"
                 type="file"
                 accept="image/*"
                 className="hidden"

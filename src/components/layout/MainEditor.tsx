@@ -3,6 +3,7 @@ import { ToolSidebar } from "./ToolSidebar";
 import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { VideoTimeline } from "./VideoTimeline";
+import { CameraViewfinder } from "./CameraViewfinder";
 
 export const MainEditor = () => {
   const [activeTool, setActiveTool] = useState<string>("select");
@@ -12,8 +13,27 @@ export const MainEditor = () => {
   const [overlayMode, setOverlayMode] = useState("grid focus");
   const [show3DCube, setShow3DCube] = useState(false);
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Trigger the hidden file input in Canvas
+    const fileInput = document.getElementById('canvas-file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Camera Viewfinder at Top */}
+      <div className="flex-shrink-0 px-4 pt-2 pb-2">
+        <CameraViewfinder 
+          aperture={2.8}
+          iso={400}
+          shutterSpeed={125}
+          exposure={0}
+          onFileUpload={handleFileUpload}
+        />
+      </div>
+
       <div className="flex flex-1 min-h-0">
         <ToolSidebar activeTool={activeTool} onToolChange={setActiveTool} />
         
