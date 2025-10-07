@@ -447,10 +447,14 @@ export const RightPanel = ({
 
   const render3DGuideControls = () => {
     const defaultCubeParams = {
-      faceOffsets: { front: 100, back: -100, left: -100, right: 100, top: 100, bottom: -100 },
+      position: { x: 0, y: 0, z: 0 },
       rotation: { x: 15, y: 45, z: 0 },
-      floor: { enabled: true, height: -100, azimuth: 0 },
-      walls: { front: "#3b82f6", back: "#ef4444", left: "#10b981", right: "#f59e0b", top: "#8b5cf6", bottom: "#6b7280" }
+      faceOffsets: { front: 100, back: -100, left: -100, right: 100, top: 100, bottom: -100 },
+      perspective: 800,
+      fov: 60,
+      walls: { front: "#3b82f6", back: "#ef4444", left: "#10b981", right: "#f59e0b", top: "#8b5cf6", bottom: "#6b7280" },
+      floor: { enabled: true, height: -100, azimuth: 0, color: "#94a3b8" },
+      objects: []
     };
     
     const params = cubeParams || defaultCubeParams;
@@ -470,7 +474,7 @@ export const RightPanel = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onShow3DCubeToggle(!show3DCube)}
+              onClick={() => { if (!show3DCube && !cubeParams) onCubeParamsChange?.(defaultCubeParams); onShow3DCubeToggle(!show3DCube); }}
               className="h-7 w-12 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
             >
               {show3DCube ? (
@@ -485,7 +489,7 @@ export const RightPanel = ({
           </p>
         </div>
 
-        {show3DCube && cubeParams && (
+        {show3DCube && (
           <>
             {/* Floor Controls */}
             <div className="space-y-2 pt-2 border-t border-border">
