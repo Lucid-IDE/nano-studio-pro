@@ -701,26 +701,33 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
     const deltaY = e.clientY - dragStart.y;
 
     if (dragMode === 'rotate') {
-      setCubeParams(prev => ({
-        ...prev,
-        rotation: {
-          ...prev.rotation,
-          y: prev.rotation.y + deltaX * 0.5,
-          x: prev.rotation.x - deltaY * 0.5,
-        }
-      }));
+      setCubeParams(prev => {
+        if (!prev?.position) return prev;
+        return {
+          ...prev,
+          rotation: {
+            ...prev.rotation,
+            y: prev.rotation.y + deltaX * 0.5,
+            x: prev.rotation.x - deltaY * 0.5,
+          }
+        };
+      });
     } else if (dragMode === 'position') {
-      setCubeParams(prev => ({
-        ...prev,
-        position: {
-          ...prev.position,
-          x: prev.position.x + deltaX * 0.5,
-          y: prev.position.y - deltaY * 0.5,
-        }
-      }));
+      setCubeParams(prev => {
+        if (!prev?.position) return prev;
+        return {
+          ...prev,
+          position: {
+            ...prev.position,
+            x: prev.position.x + deltaX * 0.5,
+            y: prev.position.y - deltaY * 0.5,
+          }
+        };
+      });
     } else if (dragMode === 'rotation-circle' && selectedArrow !== null) {
       // Handle rotation circle dragging
       setCubeParams(prev => {
+        if (!prev?.position) return prev;
         const newRotation = { ...prev.rotation };
         const delta = deltaX * 0.5;
         
@@ -742,6 +749,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
       // Handle axis ball dragging (move cube in X/Y/Z planes)
       if (selectedArrow.startsWith('axis-')) {
         setCubeParams(prev => {
+          if (!prev?.position) return prev;
           const newPosition = { ...prev.position };
           
           switch (selectedArrow) {
@@ -766,6 +774,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
         const delta = (deltaX - deltaY) * 0.5;
         
         setCubeParams(prev => {
+          if (!prev?.position) return prev;
           const newOffsets = { ...prev.faceOffsets };
           
           // Ctrl modifier: scale entire cube
@@ -842,13 +851,16 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     // Mouse scroll moves cube toward/away from camera (zoom in/out)
-    setCubeParams(prev => ({
-      ...prev,
-      position: {
-        ...prev.position,
-        z: prev.position.z - e.deltaY * 0.5
-      }
-    }));
+    setCubeParams(prev => {
+      if (!prev?.position) return prev;
+      return {
+        ...prev,
+        position: {
+          ...prev.position,
+          z: prev.position.z - e.deltaY * 0.5
+        }
+      };
+    });
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
