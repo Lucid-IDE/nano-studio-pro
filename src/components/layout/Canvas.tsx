@@ -15,7 +15,7 @@ interface CanvasProps {
   onCubeParamsChange?: (params: CubeParams) => void;
 }
 
-export const Canvas = forwardRef<HTMLCanvasElement, CanvasProps>(
+const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
   ({
     showGrid,
     zoomLevel,
@@ -261,4 +261,6 @@ export const Canvas = forwardRef<HTMLCanvasElement, CanvasProps>(
   }
 );
 
-Canvas.displayName = 'Canvas';
+CanvasComponent.displayName = 'Canvas';
+
+export const Canvas = CanvasComponent;
