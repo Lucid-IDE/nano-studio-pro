@@ -4,6 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NanoBananaPanel from "@/components/ai/NanoBananaPanel";
+import VideoGenPanel from "@/components/ai/VideoGenPanel";
 import { 
   Camera,
   Palette,
@@ -18,7 +19,8 @@ import {
   Box,
   ToggleLeft,
   ToggleRight,
-  Scissors
+  Scissors,
+  Video
 } from "lucide-react";
 import { AdvancedSegmentation } from "./AdvancedSegmentation";
 
@@ -82,13 +84,12 @@ export const RightPanel = ({
   const [rotation, setRotation] = useState([0]);
 
   const panelTabs = [
-    { id: "camera", icon: Camera, name: "Camera", color: "text-primary" },
     { id: "color", icon: Palette, name: "Color", color: "text-accent" },
     { id: "movement", icon: Move3D, name: "Movement", color: "text-success" },
-    { id: "overlay", icon: Eye, name: "Overlay", color: "text-warning" },
     { id: "3d", icon: Box, name: "3D Guide", color: "text-camera-accent" },
     { id: "segmentation", icon: Scissors, name: "AI Segmentation", color: "text-destructive" },
     { id: "ai", icon: Zap, name: "Nano Banana", color: "text-purple-500" },
+    { id: "video", icon: Video, name: "Video Gen", color: "text-blue-500" },
     { id: "layers", icon: Layers3, name: "Layers", color: "text-camera-accent" },
     { id: "advanced", icon: Settings2, name: "Advanced", color: "text-muted-foreground" },
   ];
@@ -816,14 +817,6 @@ export const RightPanel = ({
       <div className="flex-1 flex flex-col">
         <div className="flex-1 p-4 overflow-y-auto">
           <Tabs value={activePanel} onValueChange={setActivePanel} className="w-full">
-            <TabsContent value="camera" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Camera className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Camera Settings</h3>
-              </div>
-              {renderCameraControls()}
-            </TabsContent>
-            
             <TabsContent value="color" className="mt-0 space-y-4">
               <div className="flex items-center space-x-2 mb-4">
                 <Palette className="h-5 w-5 text-accent" />
@@ -838,14 +831,6 @@ export const RightPanel = ({
                 <h3 className="text-lg font-semibold">Movement</h3>
               </div>
               {renderMovementControls()}
-            </TabsContent>
-            
-            <TabsContent value="overlay" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Eye className="h-5 w-5 text-warning" />
-                <h3 className="text-lg font-semibold">Overlay Settings</h3>
-              </div>
-              {renderOverlayControls()}
             </TabsContent>
             
             <TabsContent value="3d" className="mt-0 space-y-4">
@@ -876,6 +861,12 @@ export const RightPanel = ({
                   Nano Banana AI requires canvas reference
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="video" className="mt-0">
+              <VideoGenPanel 
+                canvasRef={canvasRef}
+              />
             </TabsContent>
             
             <TabsContent value="layers" className="mt-0 space-y-4">

@@ -13,10 +13,15 @@ export const MainEditor = () => {
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayMode, setOverlayMode] = useState("grid focus");
   const [show3DCube, setShow3DCube] = useState(false);
-  const [showTimeline, setShowTimeline] = useState(true);
   const [cubeParams, setCubeParams] = useState<CubeParams | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedPixels] = useState<Set<number>>(new Set());
+
+  // Camera settings for 3D dials
+  const [aperture, setAperture] = useState(2.8);
+  const [iso, setIso] = useState(400);
+  const [shutterSpeed, setShutterSpeed] = useState(125);
+  const [exposure, setExposure] = useState(0);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Trigger the hidden file input in Canvas
@@ -33,17 +38,6 @@ export const MainEditor = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Camera Viewfinder at Top */}
-      <div className="flex-shrink-0 px-4 pt-2 pb-2">
-        <CameraViewfinder 
-          aperture={2.8}
-          iso={400}
-          shutterSpeed={125}
-          exposure={0}
-          onFileUpload={handleFileUpload}
-        />
-      </div>
-
       <div className="flex flex-1 min-h-0">
         <ToolSidebar activeTool={activeTool} onToolChange={setActiveTool} />
         
@@ -81,12 +75,6 @@ export const MainEditor = () => {
           onImageGenerated={handleImageGenerated}
         />
       </div>
-      
-      {showTimeline && (
-        <div className="flex-shrink-0">
-          <VideoTimeline onClose={() => setShowTimeline(false)} />
-        </div>
-      )}
     </div>
   );
 };

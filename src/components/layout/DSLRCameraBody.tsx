@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Power,
   Camera,
@@ -17,18 +18,57 @@ import {
   Layers3,
   Undo2,
   Redo2,
-  Save
+  Save,
+  Grid3x3,
+  Eye,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 
 interface DSLRCameraBodyProps {
   children: React.ReactNode;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
+  videoTimeline?: React.ReactNode;
+  showGrid?: boolean;
+  onGridToggle?: (show: boolean) => void;
+  showOverlay?: boolean;
+  onOverlayToggle?: (show: boolean) => void;
+  overlayMode?: string;
+  onOverlayModeChange?: (mode: string) => void;
+  aperture?: number;
+  iso?: number;
+  shutterSpeed?: number;
+  exposure?: number;
+  onApertureChange?: (value: number) => void;
+  onIsoChange?: (value: number) => void;
+  onShutterSpeedChange?: (value: number) => void;
+  onExposureChange?: (value: number) => void;
 }
 
-export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = () => {} }: DSLRCameraBodyProps) => {
+export const DSLRCameraBody = ({ 
+  children, 
+  activeTab = "editor", 
+  setActiveTab = () => {},
+  videoTimeline,
+  showGrid = false,
+  onGridToggle = () => {},
+  showOverlay = true,
+  onOverlayToggle = () => {},
+  overlayMode = "grid focus",
+  onOverlayModeChange = () => {},
+  aperture = 2.8,
+  iso = 400,
+  shutterSpeed = 125,
+  exposure = 0,
+  onApertureChange = () => {},
+  onIsoChange = () => {},
+  onShutterSpeedChange = () => {},
+  onExposureChange = () => {}
+}: DSLRCameraBodyProps) => {
   const [mode, setMode] = useState("M");
   const [focusMode, setFocusMode] = useState("AF");
+  const [lightMode, setLightMode] = useState<"M" | "TTL">("TTL");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black p-4">
@@ -135,6 +175,195 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
 
           {/* Right Side Controls */}
           <div className="flex items-center space-x-3">
+            {/* Camera Control Buttons - 3D Style */}
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-camera-metal/10 via-camera-metal/20 to-camera-metal/10 px-3 py-2 rounded-xl shadow-3d-inset border border-camera-metal/40">
+              {/* Aperture Dial */}
+              <div className="flex flex-col items-center">
+                <div className="text-[8px] text-camera-metal uppercase">Aperture</div>
+                <div className="relative w-12 h-12 bg-gradient-dial-3d rounded-full shadow-3d-dial border border-camera-metal/40">
+                  <input
+                    type="range"
+                    min="1.4"
+                    max="22"
+                    step="0.1"
+                    value={aperture}
+                    onChange={(e) => onApertureChange(parseFloat(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-br from-camera-metal/20 to-camera-metal/5 flex items-center justify-center">
+                    <div className="text-[10px] font-bold text-camera-accent">f/{aperture.toFixed(1)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ISO Dial */}
+              <div className="flex flex-col items-center">
+                <div className="text-[8px] text-camera-metal uppercase">ISO</div>
+                <div className="relative w-12 h-12 bg-gradient-dial-3d rounded-full shadow-3d-dial border border-camera-metal/40">
+                  <input
+                    type="range"
+                    min="100"
+                    max="6400"
+                    step="100"
+                    value={iso}
+                    onChange={(e) => onIsoChange(parseInt(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-br from-camera-metal/20 to-camera-metal/5 flex items-center justify-center">
+                    <div className="text-[10px] font-bold text-camera-accent">{iso}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shutter Speed Dial */}
+              <div className="flex flex-col items-center">
+                <div className="text-[8px] text-camera-metal uppercase">Shutter</div>
+                <div className="relative w-12 h-12 bg-gradient-dial-3d rounded-full shadow-3d-dial border border-camera-metal/40">
+                  <input
+                    type="range"
+                    min="30"
+                    max="8000"
+                    step="10"
+                    value={shutterSpeed}
+                    onChange={(e) => onShutterSpeedChange(parseInt(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-br from-camera-metal/20 to-camera-metal/5 flex items-center justify-center">
+                    <div className="text-[9px] font-bold text-camera-accent">1/{shutterSpeed}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* EV Dial */}
+              <div className="flex flex-col items-center">
+                <div className="text-[8px] text-camera-metal uppercase">EV</div>
+                <div className="relative w-12 h-12 bg-gradient-dial-3d rounded-full shadow-3d-dial border border-camera-metal/40">
+                  <input
+                    type="range"
+                    min="-3"
+                    max="3"
+                    step="0.3"
+                    value={exposure}
+                    onChange={(e) => onExposureChange(parseFloat(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-br from-camera-metal/20 to-camera-metal/5 flex items-center justify-center">
+                    <div className={`text-[10px] font-bold ${
+                      exposure > 0 ? 'text-amber-400' : exposure < 0 ? 'text-blue-400' : 'text-camera-accent'
+                    }`}>
+                      {exposure > 0 ? '+' : ''}{exposure.toFixed(1)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AF/MF Switch */}
+            <div className="bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full p-1">
+              <div className="flex">
+                <Button 
+                  size="sm"
+                  onClick={() => setFocusMode("AF")}
+                  className={`h-7 px-3 text-xs rounded-l-full ${
+                    focusMode === "AF" 
+                      ? "bg-camera-accent text-background shadow-3d-inset" 
+                      : "bg-transparent text-camera-metal hover:bg-camera-metal/20"
+                  }`}
+                >
+                  AF
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => setFocusMode("MF")}
+                  className={`h-7 px-3 text-xs rounded-r-full ${
+                    focusMode === "MF" 
+                      ? "bg-camera-accent text-background shadow-3d-inset" 
+                      : "bg-transparent text-camera-metal hover:bg-camera-metal/20"
+                  }`}
+                >
+                  MF
+                </Button>
+              </div>
+            </div>
+
+            {/* Timer Button */}
+            <Button 
+              size="sm" 
+              className="h-9 w-9 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full"
+            >
+              <Timer className="h-4 w-4" />
+            </Button>
+
+            {/* Light Mode (M/TTL) */}
+            <div className="bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full p-1">
+              <div className="flex">
+                <Button 
+                  size="sm"
+                  onClick={() => setLightMode("M")}
+                  className={`h-7 px-3 text-xs rounded-l-full ${
+                    lightMode === "M" 
+                      ? "bg-camera-accent text-background shadow-3d-inset" 
+                      : "bg-transparent text-camera-metal hover:bg-camera-metal/20"
+                  }`}
+                >
+                  <Sun className="h-3 w-3 mr-1" />M
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => setLightMode("TTL")}
+                  className={`h-7 px-3 text-xs rounded-r-full ${
+                    lightMode === "TTL" 
+                      ? "bg-camera-accent text-background shadow-3d-inset" 
+                      : "bg-transparent text-camera-metal hover:bg-camera-metal/20"
+                  }`}
+                >
+                  <Zap className="h-3 w-3 mr-1" />TTL
+                </Button>
+              </div>
+            </div>
+
+            {/* Settings Button */}
+            <Button 
+              size="sm" 
+              className="h-9 w-9 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+
+            {/* Video Button */}
+            <Button 
+              size="sm" 
+              className="h-9 w-9 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+
+            <div className="w-px h-12 bg-camera-metal/40"></div>
+
+            {/* Overlay Controls */}
+            <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant={showGrid ? "default" : "ghost"}
+                onClick={() => onGridToggle(!showGrid)}
+                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+              >
+                <Grid3x3 className="h-4 w-4 mr-1" />
+                Grid
+              </Button>
+              <Button
+                size="sm"
+                variant={showOverlay ? "default" : "ghost"}
+                onClick={() => onOverlayToggle(!showOverlay)}
+                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                {overlayMode === "grid focus" ? "Focus" : "Mask"}
+              </Button>
+            </div>
+
+            <div className="w-px h-12 bg-camera-metal/40"></div>
+
             {/* Status Indicators */}
             <div className="flex flex-col items-end space-y-1">
               <div className="flex items-center space-x-1">
@@ -147,14 +376,6 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
               </div>
             </div>
 
-            {/* Power Button */}
-            <Button 
-              size="sm"
-              className="h-10 w-10 p-0 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full"
-            >
-              <Power className="h-4 w-4 text-success" />
-            </Button>
-
             {/* Shutter Button - Generate Function */}
             <div className="relative">
               <Button 
@@ -165,9 +386,6 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
                 <Zap className="h-6 w-6 text-background" />
               </Button>
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-success rounded-full shadow-glow animate-pulse"></div>
-              <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-camera-accent font-medium">
-                GENERATE
-              </div>
             </div>
           </div>
         </div>
@@ -179,112 +397,12 @@ export const DSLRCameraBody = ({ children, activeTab = "editor", setActiveTab = 
           </div>
         </div>
 
-        {/* Bottom Camera Controls */}
-        <div className="flex justify-between items-center">
-          {/* Left Control Group */}
-          <div className="flex items-center space-x-4">
-            {/* AF/MF Switch */}
-            <div className="bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 rounded-full p-1">
-              <div className="flex">
-                <Button 
-                  size="sm"
-                  onClick={() => setFocusMode("AF")}
-                  className={`h-6 px-3 text-xs rounded-l-full ${
-                    focusMode === "AF" 
-                      ? "bg-camera-accent text-background shadow-3d-inset" 
-                      : "bg-transparent text-camera-metal hover:bg-camera-metal/20"
-                  }`}
-                >
-                  AF
-                </Button>
-                <Button 
-                  size="sm"
-                  onClick={() => setFocusMode("MF")}
-                  className={`h-6 px-3 text-xs rounded-r-full ${
-                    focusMode === "MF" 
-                      ? "bg-camera-accent text-background shadow-3d-inset" 
-                      : "bg-transparent text-camera-metal hover:bg-camera-metal/20"
-                  }`}
-                >
-                  MF
-                </Button>
-              </div>
-            </div>
-
-            {/* Drive Mode */}
-            <Button 
-              size="sm" 
-              className="h-8 px-4 bg-gradient-button-3d shadow-3d-button text-xs border border-camera-metal/30"
-            >
-              <Timer className="h-3 w-3 mr-1" />
-              S
-            </Button>
-
-            {/* Metering */}
-            <Button 
-              size="sm" 
-              className="h-8 px-4 bg-gradient-button-3d shadow-3d-button text-xs border border-camera-metal/30"
-            >
-              <Sun className="h-3 w-3 mr-1" />
-              M
-            </Button>
+        {/* Bottom: Video Timeline */}
+        {videoTimeline && (
+          <div className="bg-gradient-to-r from-camera-metal/5 via-camera-metal/10 to-camera-metal/5 border border-camera-metal/30 rounded-lg shadow-3d-inset">
+            {videoTimeline}
           </div>
-
-          {/* Center Status Display */}
-          <div className="flex items-center space-x-6 bg-gradient-to-r from-camera-metal/10 via-camera-metal/20 to-camera-metal/10 px-6 py-2 rounded-lg shadow-3d-inset border border-camera-metal/30">
-            <div className="text-center">
-              <div className="text-xs text-camera-metal">f/</div>
-              <div className="text-sm font-bold text-camera-accent">2.8</div>
-            </div>
-            <div className="w-px h-8 bg-camera-metal/40"></div>
-            <div className="text-center">
-              <div className="text-xs text-camera-metal">ISO</div>
-              <div className="text-sm font-bold text-camera-accent">400</div>
-            </div>
-            <div className="w-px h-8 bg-camera-metal/40"></div>
-            <div className="text-center">
-              <div className="text-xs text-camera-metal">1/</div>
-              <div className="text-sm font-bold text-camera-accent">125</div>
-            </div>
-          </div>
-
-          {/* Right Control Group */}
-          <div className="flex items-center space-x-4">
-            {/* Exposure Compensation */}
-            <Button 
-              size="sm" 
-              className="h-8 px-4 bg-gradient-button-3d shadow-3d-button text-xs border border-camera-metal/30"
-            >
-              <Aperture className="h-3 w-3 mr-1" />
-              +/-
-            </Button>
-
-            {/* Flash Control */}
-            <Button 
-              size="sm" 
-              className="h-8 px-4 bg-gradient-button-3d shadow-3d-button text-xs border border-camera-metal/30"
-            >
-              <Zap className="h-3 w-3 mr-1" />
-              TTL
-            </Button>
-
-            {/* Menu Button */}
-            <Button 
-              size="sm" 
-              className="h-8 w-12 bg-gradient-button-3d shadow-3d-button text-xs border border-camera-metal/30"
-            >
-              <Settings2 className="h-3 w-3" />
-            </Button>
-
-            {/* Playback */}
-            <Button 
-              size="sm" 
-              className="h-8 w-12 bg-gradient-button-3d shadow-3d-button text-xs border border-camera-metal/30"
-            >
-              <Video className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* Camera Grip Texture */}
         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-32 bg-gradient-camera-grip rounded-l-xl shadow-3d-inset">
