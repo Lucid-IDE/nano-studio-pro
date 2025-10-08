@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NanoBananaPanel from "@/components/ai/NanoBananaPanel";
 import { 
   Camera,
   Palette,
@@ -35,6 +36,9 @@ interface RightPanelProps {
   onSettingChange?: (setting: string, value: any) => void;
   cubeParams?: any;
   onCubeParamsChange?: (params: any) => void;
+  canvasRef?: React.RefObject<HTMLCanvasElement>;
+  selectedPixels?: Set<number>;
+  onImageGenerated?: (imageUrl: string) => void;
 }
 
 export const RightPanel = ({ 
@@ -50,7 +54,10 @@ export const RightPanel = ({
   onShow3DCubeToggle,
   onSettingChange,
   cubeParams,
-  onCubeParamsChange
+  onCubeParamsChange,
+  canvasRef,
+  selectedPixels,
+  onImageGenerated
 }: RightPanelProps) => {
   const [activePanel, setActivePanel] = useState("camera");
   
@@ -81,6 +88,7 @@ export const RightPanel = ({
     { id: "overlay", icon: Eye, name: "Overlay", color: "text-warning" },
     { id: "3d", icon: Box, name: "3D Guide", color: "text-camera-accent" },
     { id: "segmentation", icon: Scissors, name: "AI Segmentation", color: "text-destructive" },
+    { id: "ai", icon: Zap, name: "Nano Banana", color: "text-purple-500" },
     { id: "layers", icon: Layers3, name: "Layers", color: "text-camera-accent" },
     { id: "advanced", icon: Settings2, name: "Advanced", color: "text-muted-foreground" },
   ];
@@ -854,6 +862,20 @@ export const RightPanel = ({
                 <h3 className="text-lg font-semibold">AI Segmentation</h3>
               </div>
               {renderSegmentationControls()}
+            </TabsContent>
+            
+            <TabsContent value="ai" className="mt-0">
+              {canvasRef && onImageGenerated ? (
+                <NanoBananaPanel 
+                  canvasRef={canvasRef}
+                  selectedPixels={selectedPixels}
+                  onImageGenerated={onImageGenerated}
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground p-4">
+                  Nano Banana AI requires canvas reference
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="layers" className="mt-0 space-y-4">

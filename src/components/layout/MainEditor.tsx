@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ToolSidebar } from "./ToolSidebar";
 import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
@@ -15,6 +15,8 @@ export const MainEditor = () => {
   const [show3DCube, setShow3DCube] = useState(false);
   const [showTimeline, setShowTimeline] = useState(true);
   const [cubeParams, setCubeParams] = useState<CubeParams | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [selectedPixels] = useState<Set<number>>(new Set());
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Trigger the hidden file input in Canvas
@@ -22,6 +24,11 @@ export const MainEditor = () => {
     if (fileInput) {
       fileInput.click();
     }
+  };
+
+  const handleImageGenerated = (imageUrl: string) => {
+    console.log('Image generated:', imageUrl);
+    // TODO: Display generated image on canvas
   };
 
   return (
@@ -43,6 +50,7 @@ export const MainEditor = () => {
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 p-4 min-h-0">
             <Canvas 
+              ref={canvasRef}
               showGrid={showGrid} 
               zoomLevel={zoomLevel} 
               activeTool={activeTool}
@@ -68,6 +76,9 @@ export const MainEditor = () => {
           onShow3DCubeToggle={setShow3DCube}
           cubeParams={cubeParams}
           onCubeParamsChange={setCubeParams}
+          canvasRef={canvasRef}
+          selectedPixels={selectedPixels}
+          onImageGenerated={handleImageGenerated}
         />
       </div>
       
