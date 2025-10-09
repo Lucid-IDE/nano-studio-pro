@@ -22,27 +22,60 @@ serve(async (req) => {
       mode = 'generate', 
       prompt, 
       baseImage, 
-      maskImage, 
+      maskImage,
+      sketchAnalysis,
       aspectRatio = '1:1',
       outputCount = 1,
-      structuralWeight = 1.0,
-      colorWeight = 1.0,
+      structuralWeight = 0.7,
+      colorWeight = 0.3,
+      featherAmount = 0.03,
       generateGoT = false
     } = body;
 
     console.log(`[Nano Banana] Mode: ${mode}, GoT: ${generateGoT}`);
+    
+    if (sketchAnalysis) {
+      console.log('[Nano Banana] Sketch Analysis:', {
+        structuralSegments: sketchAnalysis.structuralMap?.lineGeometry?.length || 0,
+        colorRegions: sketchAnalysis.colorMap?.length || 0,
+        confidence: sketchAnalysis.structuralMap?.confidenceScore || 0
+      });
+    }
 
     // Step 1: Optional GoT (Generation Chain-of-Thought) preview
     if (generateGoT) {
       console.log('[Nano Banana] Generating GoT preview...');
+      
+      let enhancedPrompt = `Mode: ${mode}\nPrompt: ${prompt}\nAspect Ratio: ${aspectRatio}`;
+      
+      // Add sketch analysis data if available
+      if (sketchAnalysis) {
+        const { structuralMap, colorMap } = sketchAnalysis;
+        enhancedPrompt += `\n\nSKETCH ANALYSIS DATA:
+- Detected ${structuralMap?.lineGeometry?.length || 0} structural line segments (confidence: ${Math.round((structuralMap?.confidenceScore || 0) * 100)}%)
+- Identified ${colorMap?.length || 0} distinct color regions for appearance guidance
+- Mask feathering: ${(featherAmount * 100).toFixed(1)}%
+- Structure preservation weight: ${(structuralWeight * 100).toFixed(0)}%
+- Color consistency weight: ${(colorWeight * 100).toFixed(0)}%`;
+      }
+      
       const gotMessages = [
         {
           role: 'system',
-          content: 'You are an AI image generation planner. Analyze the request and provide a step-by-step plan for how the image will be generated. Be specific about structure, color, composition, and blending.'
+          content: `You are an AI image editing assistant with expertise in multimodal sketch-based editing. 
+
+When analyzing a request, explain:
+1. **Spatial Analysis**: What regions are being modified (based on mask/sketch)
+2. **Structural Control (OAL)**: How you will preserve or modify geometric structure
+3. **Appearance Control (CCL)**: How color and texture will be applied
+4. **Blending Strategy**: How edges will be feathered for seamless integration
+5. **Consistency Maintenance**: How character/object identity will be preserved
+
+Provide a clear, step-by-step execution plan.`
         },
         {
           role: 'user',
-          content: `Mode: ${mode}\nPrompt: ${prompt}\nAspect Ratio: ${aspectRatio}\n\nProvide a detailed 3-step plan for generating this image.`
+          content: enhancedPrompt
         }
       ];
 
@@ -55,6 +88,8 @@ serve(async (req) => {
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: gotMessages,
+          temperature: 0.7,
+          max_tokens: 600
         }),
       });
 
@@ -66,12 +101,13 @@ serve(async (req) => {
 
       const gotData = await gotResponse.json();
       const gotPlan = gotData.choices?.[0]?.message?.content || 'Unable to generate plan';
-      console.log('[Nano Banana] GoT plan:', gotPlan);
+      console.log('[Nano Banana] GoT plan generated successfully');
 
       // Return GoT plan only (don't generate image yet)
       return new Response(JSON.stringify({ 
         success: true,
         got: gotPlan,
+        sketchAnalysis: sketchAnalysis || null,
         mode: 'got-preview'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -81,13 +117,43 @@ serve(async (req) => {
     // Step 2: Build messages for image generation
     const messages: any[] = [];
 
-    // System prompt with control parameters
-    const systemPrompt = `You are Nano Banana, an advanced image generation system. 
-Structural Adherence: ${structuralWeight * 100}%
-Color Fidelity: ${colorWeight * 100}%
-Mode: ${mode}
+    // Enhanced system prompt with multimodal control parameters
+    let systemPrompt = `You are Nano Banana, an advanced multimodal image generation system with precise structural and appearance control.
 
-For edit mode: Respect mask boundaries precisely. Apply feathering (3% dilation) to blend edges seamlessly.`;
+Mode: ${mode}
+Structural Adherence (OAL): ${structuralWeight * 100}%
+Color Fidelity (CCL): ${colorWeight * 100}%`;
+
+    if (mode === 'edit') {
+      systemPrompt += `\n
+EDITING REQUIREMENTS:
+- Respect mask boundaries precisely
+- Apply ${(featherAmount * 100).toFixed(1)}% edge feathering for seamless blending
+- Prevent cross-attention leakage across mask boundaries
+- Maintain character/object consistency across the edit`;
+      
+      // Add structural control guidance (OAL analog)
+      if (structuralWeight > 0.5) {
+        systemPrompt += `\n
+STRUCTURAL CONTROL (High Priority):
+- Strictly preserve geometric boundaries and layout defined by the mask
+- Maintain spatial relationships and proportions
+- The mask defines the structural "skeleton" that must be respected`;
+      }
+      
+      // Add color control guidance (CCL analog)
+      if (colorWeight > 0.3 && sketchAnalysis?.colorMap) {
+        const colorRegions = sketchAnalysis.colorMap.map((c: any) => 
+          `${c.color} (weight: ${(c.weight * 100).toFixed(0)}%)`
+        ).join(', ');
+        
+        systemPrompt += `\n
+COLOR CONSISTENCY CONTROL:
+- Apply these colors precisely within their respective regions: ${colorRegions}
+- Prevent color leakage across region boundaries
+- Match color intensity and saturation from the guidance map`;
+      }
+    }
 
     messages.push({
       role: 'system',
@@ -120,25 +186,30 @@ For edit mode: Respect mask boundaries precisely. Apply feathering (3% dilation)
         content: [
           {
             type: 'text',
-            text: 'Mask overlay (white = edit region, transparent = preserve):'
+            text: 'Mask overlay with alpha channel (defines edit region and provides structural/color guidance):'
           },
           {
             type: 'image_url',
             image_url: {
-              url: maskImage // expects data:image/webp;base64,... (WebP with alpha)
+              url: maskImage // expects data:image/webp;base64,... (WebP/PNG with alpha)
             }
           }
         ]
       });
     }
 
-    // Add the main prompt
+    // Add the main prompt with aspect ratio hint for generate mode
+    let finalPrompt = prompt;
+    if (mode === 'generate' && aspectRatio && aspectRatio !== 'auto') {
+      finalPrompt = `${aspectRatio} aspect ratio. ${prompt}`;
+    }
+    
     messages.push({
       role: 'user',
-      content: prompt
+      content: finalPrompt
     });
 
-    // Step 3: Call Nano Banana model
+    // Step 3: Call Nano Banana model (Gemini 2.5 Flash Image)
     console.log('[Nano Banana] Calling image generation API...');
     const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -164,7 +235,7 @@ For edit mode: Respect mask boundaries precisely. Apply feathering (3% dilation)
       }
       if (imageResponse.status === 402) {
         return new Response(JSON.stringify({ 
-          error: 'Credit limit reached. Please add credits to your workspace.' 
+          error: 'AI usage limit reached. Please add credits to your Lovable workspace.' 
         }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -181,10 +252,16 @@ For edit mode: Respect mask boundaries precisely. Apply feathering (3% dilation)
     // Extract generated images
     const images = imageData.choices?.[0]?.message?.images || [];
     const generatedImages = images.map((img: any) => img.image_url?.url || '');
+    const explanation = imageData.choices?.[0]?.message?.content || '';
+
+    if (generatedImages.length === 0) {
+      throw new Error('No images generated in response');
+    }
 
     return new Response(JSON.stringify({ 
       success: true,
       images: generatedImages,
+      explanation,
       mode,
       aspectRatio
     }), {

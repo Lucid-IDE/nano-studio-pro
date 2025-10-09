@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -6,10 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Loader2, Sparkles, Wand2, Eye } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Sparkles, Wand2, Eye, Layers, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { canvasToWebP, createBinaryMask, exceedsSizeLimit } from '@/utils/webpConverter';
+import { SketchOverlay, type SketchOverlayHandle } from '@/components/canvas/SketchOverlay';
+import type { SketchAnalysis } from '@/utils/sketchMaskProcessor';
 
 interface NanoBananaPanelProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -26,12 +30,15 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
   const [mode, setMode] = useState<'generate' | 'edit'>('generate');
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [structuralWeight, setStructuralWeight] = useState([1.0]);
-  const [colorWeight, setColorWeight] = useState([1.0]);
+  const [structuralWeight, setStructuralWeight] = useState([0.7]);
+  const [colorWeight, setColorWeight] = useState([0.3]);
   const [featherAmount, setFeatherAmount] = useState([0.03]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [gotPlan, setGotPlan] = useState<string>('');
   const [showGoT, setShowGoT] = useState(false);
+  const [showSketchOverlay, setShowSketchOverlay] = useState(false);
+  const [currentSketchAnalysis, setCurrentSketchAnalysis] = useState<SketchAnalysis | null>(null);
+  const sketchOverlayRef = useRef<SketchOverlayHandle>(null);
 
   const aspectRatios = [
     { value: '1:1', label: 'Square (1:1)' },
@@ -60,6 +67,10 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
           mode,
           prompt,
           aspectRatio,
+          sketchAnalysis: currentSketchAnalysis,
+          structuralWeight: structuralWeight[0],
+          colorWeight: colorWeight[0],
+          featherAmount: featherAmount[0],
           generateGoT: true,
         },
       });
@@ -70,7 +81,7 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
         setGotPlan(data.got);
         toast({
           title: 'Generation Plan Ready',
-          description: 'Review the plan before generating',
+          description: 'Review the AI\'s step-by-step approach below',
         });
       }
     } catch (error) {
@@ -127,28 +138,53 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
           return;
         }
 
-        // Create mask from selection
-        if (selectedPixels && selectedPixels.size > 0) {
-          maskImage = await createBinaryMask(
-            canvas.width,
-            canvas.height,
-            selectedPixels,
-            featherAmount[0]
-          );
-
-          if (exceedsSizeLimit(maskImage)) {
+        // Get mask from sketch overlay if active, otherwise use selected pixels
+        if (showSketchOverlay && sketchOverlayRef.current) {
+          const sketchCanvas = sketchOverlayRef.current.getSketchCanvas();
+          const sketchAnalysis = sketchOverlayRef.current.getSketchAnalysis();
+          
+          if (!sketchCanvas || !sketchAnalysis) {
             toast({
-              title: 'Mask Too Large',
-              description: 'Mask exceeds 7MB limit. Please reduce canvas size.',
+              title: 'No Sketch',
+              description: 'Please draw a sketch overlay or disable sketch mode',
               variant: 'destructive',
             });
             setIsGenerating(false);
             return;
           }
+          
+          // Use the analyzed sketch mask
+          maskImage = sketchAnalysis.binaryMask;
+          
+          console.log('Using sketch overlay with multimodal analysis:', {
+            structuralSegments: sketchAnalysis.structuralMap.lineGeometry.length,
+            colorRegions: sketchAnalysis.colorMap.length,
+            confidence: sketchAnalysis.structuralMap.confidenceScore
+          });
         } else {
+          // Fallback to selected pixels mask
+          if (selectedPixels && selectedPixels.size > 0) {
+            maskImage = await createBinaryMask(
+              canvas.width,
+              canvas.height,
+              selectedPixels,
+              featherAmount[0]
+            );
+          } else {
+            toast({
+              title: 'No Selection',
+              description: 'Please select an area or use sketch overlay',
+              variant: 'destructive',
+            });
+            setIsGenerating(false);
+            return;
+          }
+        }
+
+        if (maskImage && exceedsSizeLimit(maskImage)) {
           toast({
-            title: 'No Selection',
-            description: 'Please select an area to edit using the selection tools',
+            title: 'Mask Too Large',
+            description: 'Mask exceeds 7MB limit. Please reduce canvas size.',
             variant: 'destructive',
           });
           setIsGenerating(false);
@@ -163,9 +199,11 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
           prompt,
           baseImage,
           maskImage,
+          sketchAnalysis: currentSketchAnalysis,
           aspectRatio,
           structuralWeight: structuralWeight[0],
           colorWeight: colorWeight[0],
+          featherAmount: featherAmount[0],
           generateGoT: false,
         },
       });
@@ -251,72 +289,101 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
               rows={4}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              Use selection tools to define the area to edit
-            </p>
           </div>
 
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Structural Weight (OAL)</Label>
-              <div className="flex items-center gap-4">
+          {/* Sketch Overlay Toggle */}
+          <Card className="p-3 bg-primary/5 border-primary/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Sketch Overlay</span>
+              </div>
+              <Button
+                size="sm"
+                variant={showSketchOverlay ? "default" : "outline"}
+                onClick={() => setShowSketchOverlay(!showSketchOverlay)}
+              >
+                {showSketchOverlay ? 'Active' : 'Enable'}
+              </Button>
+            </div>
+            {showSketchOverlay && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Draw on canvas to define structural and color guidance
+              </p>
+            )}
+          </Card>
+
+          <Separator />
+
+          {/* Advanced Multimodal Controls */}
+          <Card className="p-3 bg-surface/50 border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <Settings2 className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium">Multimodal Control</span>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Structure Weight (OAL)</Label>
+                  <Badge variant="secondary" className="text-xs">
+                    {Math.round(structuralWeight[0] * 100)}%
+                  </Badge>
+                </div>
                 <Slider
                   value={structuralWeight}
                   onValueChange={setStructuralWeight}
                   min={0}
                   max={1}
                   step={0.1}
-                  className="flex-1"
+                  className="w-full"
                 />
-                <span className="text-sm font-medium w-12 text-right">
-                  {Math.round(structuralWeight[0] * 100)}%
-                </span>
+                <p className="text-xs text-muted-foreground">
+                  Preserve geometric structure and layout
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Controls adherence to sketch structure
-              </p>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Color Fidelity (CCL)</Label>
-              <div className="flex items-center gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Color Weight (CCL)</Label>
+                  <Badge variant="secondary" className="text-xs">
+                    {Math.round(colorWeight[0] * 100)}%
+                  </Badge>
+                </div>
                 <Slider
                   value={colorWeight}
                   onValueChange={setColorWeight}
                   min={0}
                   max={1}
                   step={0.1}
-                  className="flex-1"
+                  className="w-full"
                 />
-                <span className="text-sm font-medium w-12 text-right">
-                  {Math.round(colorWeight[0] * 100)}%
-                </span>
+                <p className="text-xs text-muted-foreground">
+                  Apply color consistency in marked regions
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Controls color accuracy and consistency
-              </p>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Edge Feathering</Label>
-              <div className="flex items-center gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Edge Feathering</Label>
+                  <Badge variant="secondary" className="text-xs">
+                    {(featherAmount[0] * 100).toFixed(1)}%
+                  </Badge>
+                </div>
                 <Slider
                   value={featherAmount}
                   onValueChange={setFeatherAmount}
                   min={0}
                   max={0.1}
                   step={0.01}
-                  className="flex-1"
+                  className="w-full"
                 />
-                <span className="text-sm font-medium w-12 text-right">
-                  {Math.round(featherAmount[0] * 100)}%
-                </span>
+                <p className="text-xs text-muted-foreground">
+                  Smooth blend between edited and original
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Blending radius for seamless edges
-              </p>
             </div>
-          </div>
+          </Card>
         </TabsContent>
       </Tabs>
 
@@ -364,12 +431,22 @@ const NanoBananaPanel: React.FC<NanoBananaPanelProps> = ({
       <div className="text-xs text-muted-foreground pt-2 border-t">
         <p className="font-medium mb-1">💡 Tips:</p>
         <ul className="list-disc list-inside space-y-1">
-          <li>Use specific, detailed prompts for best results</li>
-          <li>Edit mode: Select area first, then describe changes</li>
-          <li>Higher structural weight = stricter geometry adherence</li>
+          <li>Use sketch overlay for precise structural control</li>
+          <li>Different sketch colors guide appearance changes</li>
+          <li>Higher structure weight preserves layout better</li>
           <li>Preview Plan shows AI's step-by-step approach</li>
         </ul>
       </div>
+
+      {/* Sketch Overlay Component */}
+      {showSketchOverlay && canvasRef.current && (
+        <SketchOverlay
+          ref={sketchOverlayRef}
+          baseCanvas={canvasRef.current}
+          visible={showSketchOverlay}
+          onSketchComplete={(analysis) => setCurrentSketchAnalysis(analysis)}
+        />
+      )}
     </div>
   );
 };
