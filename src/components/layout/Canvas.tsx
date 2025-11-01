@@ -13,6 +13,9 @@ interface CanvasProps {
   show3DCube?: boolean;
   cubeParams?: CubeParams | null;
   onCubeParamsChange?: (params: CubeParams) => void;
+  showSketch?: boolean;
+  showCanvasTo3D?: boolean;
+  showCameraFrustum?: boolean;
 }
 
 const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
@@ -25,6 +28,9 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
     show3DCube = false,
     cubeParams,
     onCubeParamsChange,
+    showSketch = false,
+    showCanvasTo3D = false,
+    showCameraFrustum = false,
   }, ref) => {
     const internalCanvasRef = useRef<HTMLCanvasElement>(null);
     const [hasImage, setHasImage] = useState(false);
@@ -243,12 +249,21 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
 
         {/* 3D Cube Overlay */}
         <Cube3DOverlay
-          showCube={show3DCube}
-          cubeParams={cubeParams}
+          showCube={show3DCube || showCanvasTo3D || showCameraFrustum}
+          cubeParams={cubeParams ? {
+            ...cubeParams,
+            cameraFrustum: {
+              ...cubeParams.cameraFrustum,
+              enabled: showCameraFrustum
+            },
+            canvasTo3D: {
+              ...cubeParams.canvasTo3D,
+              enabled: showCanvasTo3D
+            }
+          } : undefined}
           onCubeParamsChange={onCubeParamsChange}
           onCubeChange={(params) => {
             console.log("3D Cube parameters changed:", params);
-            // This will be used to generate AI prompts for scene movement
           }}
         />
 

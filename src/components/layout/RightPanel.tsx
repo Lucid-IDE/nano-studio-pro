@@ -35,6 +35,12 @@ interface RightPanelProps {
   onOverlayModeChange: (mode: string) => void;
   show3DCube: boolean;
   onShow3DCubeToggle: (show: boolean) => void;
+  showSketch: boolean;
+  onShowSketchToggle: (show: boolean) => void;
+  showCanvasTo3D: boolean;
+  onShowCanvasTo3DToggle: (show: boolean) => void;
+  showCameraFrustum: boolean;
+  onShowCameraFrustumToggle: (show: boolean) => void;
   onSettingChange?: (setting: string, value: any) => void;
   cubeParams?: any;
   onCubeParamsChange?: (params: any) => void;
@@ -54,6 +60,12 @@ export const RightPanel = ({
   onOverlayModeChange,
   show3DCube,
   onShow3DCubeToggle,
+  showSketch,
+  onShowSketchToggle,
+  showCanvasTo3D,
+  onShowCanvasTo3DToggle,
+  showCameraFrustum,
+  onShowCameraFrustumToggle,
   onSettingChange,
   cubeParams,
   onCubeParamsChange,

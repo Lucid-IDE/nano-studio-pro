@@ -25,6 +25,10 @@ export const EditorLayout = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayMode, setOverlayMode] = useState("grid focus");
+  const [show3DCube, setShow3DCube] = useState(false);
+  const [showSketch, setShowSketch] = useState(false);
+  const [showCanvasTo3D, setShowCanvasTo3D] = useState(false);
+  const [showCameraFrustum, setShowCameraFrustum] = useState(false);
   const [aperture, setAperture] = useState(2.8);
   const [iso, setIso] = useState(400);
   const [shutterSpeed, setShutterSpeed] = useState(125);
@@ -41,6 +45,14 @@ export const EditorLayout = () => {
       onOverlayToggle={setShowOverlay}
       overlayMode={overlayMode}
       onOverlayModeChange={setOverlayMode}
+      show3DCube={show3DCube}
+      onShow3DCubeToggle={setShow3DCube}
+      showSketch={showSketch}
+      onShowSketchToggle={setShowSketch}
+      showCanvasTo3D={showCanvasTo3D}
+      onShowCanvasTo3DToggle={setShowCanvasTo3D}
+      showCameraFrustum={showCameraFrustum}
+      onShowCameraFrustumToggle={setShowCameraFrustum}
       aperture={aperture}
       iso={iso}
       shutterSpeed={shutterSpeed}

@@ -22,7 +22,11 @@ import {
   Grid3x3,
   Eye,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Box,
+  Pencil,
+  CircleDot,
+  Image
 } from "lucide-react";
 
 interface DSLRCameraBodyProps {
@@ -36,6 +40,14 @@ interface DSLRCameraBodyProps {
   onOverlayToggle?: (show: boolean) => void;
   overlayMode?: string;
   onOverlayModeChange?: (mode: string) => void;
+  show3DCube?: boolean;
+  onShow3DCubeToggle?: (show: boolean) => void;
+  showSketch?: boolean;
+  onShowSketchToggle?: (show: boolean) => void;
+  showCanvasTo3D?: boolean;
+  onShowCanvasTo3DToggle?: (show: boolean) => void;
+  showCameraFrustum?: boolean;
+  onShowCameraFrustumToggle?: (show: boolean) => void;
   aperture?: number;
   iso?: number;
   shutterSpeed?: number;
@@ -57,6 +69,14 @@ export const DSLRCameraBody = ({
   onOverlayToggle = () => {},
   overlayMode = "grid focus",
   onOverlayModeChange = () => {},
+  show3DCube = false,
+  onShow3DCubeToggle = () => {},
+  showSketch = false,
+  onShowSketchToggle = () => {},
+  showCanvasTo3D = false,
+  onShowCanvasTo3DToggle = () => {},
+  showCameraFrustum = false,
+  onShowCameraFrustumToggle = () => {},
   aperture = 2.8,
   iso = 400,
   shutterSpeed = 125,
@@ -347,6 +367,7 @@ export const DSLRCameraBody = ({
                 variant={showGrid ? "default" : "ghost"}
                 onClick={() => onGridToggle(!showGrid)}
                 className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                title="Toggle Grid Overlay"
               >
                 <Grid3x3 className="h-4 w-4 mr-1" />
                 Grid
@@ -356,9 +377,50 @@ export const DSLRCameraBody = ({
                 variant={showOverlay ? "default" : "ghost"}
                 onClick={() => onOverlayToggle(!showOverlay)}
                 className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                title="Toggle LCD Overlay"
               >
                 <Eye className="h-4 w-4 mr-1" />
-                {overlayMode === "grid focus" ? "Focus" : "Mask"}
+                LCD
+              </Button>
+              <Button
+                size="sm"
+                variant={show3DCube ? "default" : "ghost"}
+                onClick={() => onShow3DCubeToggle(!show3DCube)}
+                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                title="Toggle 3D Guide"
+              >
+                <Box className="h-4 w-4 mr-1" />
+                3D
+              </Button>
+              <Button
+                size="sm"
+                variant={showSketch ? "default" : "ghost"}
+                onClick={() => onShowSketchToggle(!showSketch)}
+                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                title="Toggle Sketch Overlay"
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Sketch
+              </Button>
+              <Button
+                size="sm"
+                variant={showCanvasTo3D ? "default" : "ghost"}
+                onClick={() => onShowCanvasTo3DToggle(!showCanvasTo3D)}
+                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                title="Convert Canvas to 3D"
+              >
+                <Image className="h-4 w-4 mr-1" />
+                Canvas3D
+              </Button>
+              <Button
+                size="sm"
+                variant={showCameraFrustum ? "default" : "ghost"}
+                onClick={() => onShowCameraFrustumToggle(!showCameraFrustum)}
+                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
+                title="Toggle Camera Frustum"
+              >
+                <CircleDot className="h-4 w-4 mr-1" />
+                Camera
               </Button>
             </div>
 

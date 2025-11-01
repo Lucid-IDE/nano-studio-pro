@@ -43,8 +43,40 @@ export interface CubeParams {
     enabled: boolean;
     height: number;
     azimuth: number;
+    tilt: number;
+    yaw: number;
+    scale: number;
     color: string;
   };
+  cameraFrustum: {
+    enabled: boolean;
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    fov: number;
+    aspectRatio: number;
+    nearPlane: number;
+    farPlane: number;
+  };
+  canvasTo3D: {
+    enabled: boolean;
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    scale: number;
+  };
+  models: Array<{
+    id: string;
+    url: string;
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    scale: { x: number; y: number; z: number };
+  }>;
+  layers3D: Array<{
+    id: string;
+    imageUrl: string;
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    scale: { x: number; y: number };
+  }>;
   objects: Array<{
     id: string;
     type: 'car' | 'person';
@@ -80,8 +112,28 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
       enabled: true,
       height: -100,
       azimuth: 0,
+      tilt: 0,
+      yaw: 0,
+      scale: 1,
       color: "#94a3b8"
     },
+    cameraFrustum: {
+      enabled: false,
+      position: { x: 0, y: 50, z: 150 },
+      rotation: { x: -10, y: 0, z: 0 },
+      fov: 60,
+      aspectRatio: 16 / 9,
+      nearPlane: 10,
+      farPlane: 200
+    },
+    canvasTo3D: {
+      enabled: false,
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1
+    },
+    models: [],
+    layers3D: [],
     objects: []
   });
 
@@ -241,7 +293,24 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
     // Draw floor if enabled
     if (cubeParams.floor.enabled) {
       drawFloor(ctx, project3D);
+      drawFloorControls(ctx, project3D);
     }
+
+    // Draw camera frustum if enabled
+    if (cubeParams.cameraFrustum.enabled) {
+      drawCameraFrustum(ctx, project3D);
+    }
+
+    // Draw canvas as 3D plane if enabled
+    if (cubeParams.canvasTo3D.enabled) {
+      drawCanvasPlane(ctx, project3D);
+    }
+
+    // Draw 3D layers
+    draw3DLayers(ctx, project3D);
+
+    // Draw 3D models
+    draw3DModels(ctx, project3D);
 
     // Draw objects (cars, people)
     drawObjects(ctx, project3D);
@@ -313,39 +382,292 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
 
   const drawFloor = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
     const { floor } = cubeParams;
-    const size = 300;
-    const gridSpacing = 50;
+    const size = 300 * floor.scale;
+    const gridSpacing = 50 * floor.scale;
     
-    // Apply azimuth rotation to floor
+    // Apply azimuth, tilt, and yaw rotations
     const azimuthRad = (floor.azimuth * Math.PI) / 180;
+    const tiltRad = (floor.tilt * Math.PI) / 180;
+    const yawRad = (floor.yaw * Math.PI) / 180;
     
     // Draw grid
     ctx.strokeStyle = floor.color + '40';
     ctx.lineWidth = 1;
     
     for (let i = -size; i <= size; i += gridSpacing) {
-      // Lines parallel to X axis
-      const x1 = i * Math.cos(azimuthRad);
-      const z1 = i * Math.sin(azimuthRad);
-      const start1 = project3D(x1 - size * Math.sin(azimuthRad), floor.height, z1 + size * Math.cos(azimuthRad));
-      const end1 = project3D(x1 + size * Math.sin(azimuthRad), floor.height, z1 - size * Math.cos(azimuthRad));
-      
+      // Apply rotation transformations
+      for (let j = -size; j <= size; j += gridSpacing) {
+        const x1 = i * Math.cos(azimuthRad) - j * Math.sin(azimuthRad);
+        const z1 = i * Math.sin(azimuthRad) + j * Math.cos(azimuthRad);
+        const y1 = floor.height + (z1 * Math.sin(tiltRad)) + (x1 * Math.sin(yawRad));
+        
+        if (j === -size) {
+          const x2 = i * Math.cos(azimuthRad) - (j + gridSpacing) * Math.sin(azimuthRad);
+          const z2 = i * Math.sin(azimuthRad) + (j + gridSpacing) * Math.cos(azimuthRad);
+          const y2 = floor.height + (z2 * Math.sin(tiltRad)) + (x2 * Math.sin(yawRad));
+          
+          const start = project3D(x1, y1, z1);
+          const end = project3D(x2, y2, z2);
+          
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+        }
+      }
+    }
+  };
+
+  const drawFloorControls = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    const { floor } = cubeParams;
+    
+    // Floor center position
+    const centerPos = project3D(0, floor.height, 0);
+    
+    // Height control (up/down arrow at center)
+    const heightArrow = project3D(0, floor.height - 40, 0);
+    ctx.beginPath();
+    ctx.moveTo(centerPos.x, centerPos.y);
+    ctx.lineTo(heightArrow.x, heightArrow.y);
+    ctx.strokeStyle = hoveredArrow === 'floor-height' || selectedArrow === 'floor-height' ? '#fbbf24' : '#94a3b8';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(heightArrow.x, heightArrow.y, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'floor-height' || selectedArrow === 'floor-height' ? '#fbbf24' : '#94a3b8';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Rotation control (azimuth)
+    const rotArrow = project3D(40, floor.height, 0);
+    ctx.beginPath();
+    ctx.arc(rotArrow.x, rotArrow.y, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'floor-rotation' || selectedArrow === 'floor-rotation' ? '#fbbf24' : '#10b981';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Tilt control
+    const tiltArrow = project3D(0, floor.height, 40);
+    ctx.beginPath();
+    ctx.arc(tiltArrow.x, tiltArrow.y, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'floor-tilt' || selectedArrow === 'floor-tilt' ? '#fbbf24' : '#3b82f6';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Yaw control
+    const yawArrow = project3D(-40, floor.height, 0);
+    ctx.beginPath();
+    ctx.arc(yawArrow.x, yawArrow.y, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'floor-yaw' || selectedArrow === 'floor-yaw' ? '#fbbf24' : '#f59e0b';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Scale control
+    const scaleArrow = project3D(0, floor.height, -40);
+    ctx.beginPath();
+    ctx.arc(scaleArrow.x, scaleArrow.y, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'floor-scale' || selectedArrow === 'floor-scale' ? '#fbbf24' : '#8b5cf6';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
+  const drawCameraFrustum = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    const { cameraFrustum } = cubeParams;
+    
+    // Calculate frustum corners
+    const halfHeightNear = cameraFrustum.nearPlane * Math.tan((cameraFrustum.fov * Math.PI) / 360);
+    const halfWidthNear = halfHeightNear * cameraFrustum.aspectRatio;
+    const halfHeightFar = cameraFrustum.farPlane * Math.tan((cameraFrustum.fov * Math.PI) / 360);
+    const halfWidthFar = halfHeightFar * cameraFrustum.aspectRatio;
+    
+    const { position: camPos, rotation: camRot } = cameraFrustum;
+    
+    // Near plane corners
+    const nearCorners = [
+      project3D(camPos.x - halfWidthNear, camPos.y + halfHeightNear, camPos.z + cameraFrustum.nearPlane),
+      project3D(camPos.x + halfWidthNear, camPos.y + halfHeightNear, camPos.z + cameraFrustum.nearPlane),
+      project3D(camPos.x + halfWidthNear, camPos.y - halfHeightNear, camPos.z + cameraFrustum.nearPlane),
+      project3D(camPos.x - halfWidthNear, camPos.y - halfHeightNear, camPos.z + cameraFrustum.nearPlane),
+    ];
+    
+    // Far plane corners
+    const farCorners = [
+      project3D(camPos.x - halfWidthFar, camPos.y + halfHeightFar, camPos.z + cameraFrustum.farPlane),
+      project3D(camPos.x + halfWidthFar, camPos.y + halfHeightFar, camPos.z + cameraFrustum.farPlane),
+      project3D(camPos.x + halfWidthFar, camPos.y - halfHeightFar, camPos.z + cameraFrustum.farPlane),
+      project3D(camPos.x - halfWidthFar, camPos.y - halfHeightFar, camPos.z + cameraFrustum.farPlane),
+    ];
+    
+    // Draw frustum
+    ctx.strokeStyle = '#fbbf2480';
+    ctx.lineWidth = 2;
+    
+    // Near plane
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      if (i === 0) ctx.moveTo(nearCorners[i].x, nearCorners[i].y);
+      else ctx.lineTo(nearCorners[i].x, nearCorners[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Far plane
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      if (i === 0) ctx.moveTo(farCorners[i].x, farCorners[i].y);
+      else ctx.lineTo(farCorners[i].x, farCorners[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Connecting lines
+    for (let i = 0; i < 4; i++) {
       ctx.beginPath();
-      ctx.moveTo(start1.x, start1.y);
-      ctx.lineTo(end1.x, end1.y);
-      ctx.stroke();
-      
-      // Lines parallel to Z axis
-      const x2 = i * Math.sin(azimuthRad);
-      const z2 = -i * Math.cos(azimuthRad);
-      const start2 = project3D(x2 - size * Math.cos(azimuthRad), floor.height, z2 - size * Math.sin(azimuthRad));
-      const end2 = project3D(x2 + size * Math.cos(azimuthRad), floor.height, z2 + size * Math.sin(azimuthRad));
-      
-      ctx.beginPath();
-      ctx.moveTo(start2.x, start2.y);
-      ctx.lineTo(end2.x, end2.y);
+      ctx.moveTo(nearCorners[i].x, nearCorners[i].y);
+      ctx.lineTo(farCorners[i].x, farCorners[i].y);
       ctx.stroke();
     }
+    
+    // Camera position indicator
+    const camPosProj = project3D(camPos.x, camPos.y, camPos.z);
+    ctx.beginPath();
+    ctx.arc(camPosProj.x, camPosProj.y, 12, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'camera-frustum' || selectedArrow === 'camera-frustum' ? '#fbbf24' : '#fbbf24';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
+  const drawCanvasPlane = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    const { canvasTo3D } = cubeParams;
+    const width = 200 * canvasTo3D.scale;
+    const height = 150 * canvasTo3D.scale;
+    
+    const corners = [
+      project3D(canvasTo3D.position.x - width/2, canvasTo3D.position.y + height/2, canvasTo3D.position.z),
+      project3D(canvasTo3D.position.x + width/2, canvasTo3D.position.y + height/2, canvasTo3D.position.z),
+      project3D(canvasTo3D.position.x + width/2, canvasTo3D.position.y - height/2, canvasTo3D.position.z),
+      project3D(canvasTo3D.position.x - width/2, canvasTo3D.position.y - height/2, canvasTo3D.position.z),
+    ];
+    
+    // Draw canvas plane
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 3;
+    ctx.fillStyle = '#60a5fa20';
+    
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      if (i === 0) ctx.moveTo(corners[i].x, corners[i].y);
+      else ctx.lineTo(corners[i].x, corners[i].y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Draw control node
+    const centerProj = project3D(canvasTo3D.position.x, canvasTo3D.position.y, canvasTo3D.position.z);
+    ctx.beginPath();
+    ctx.arc(centerProj.x, centerProj.y, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = hoveredArrow === 'canvas-3d' || selectedArrow === 'canvas-3d' ? '#fbbf24' : '#60a5fa';
+    ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
+  const draw3DLayers = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    cubeParams.layers3D.forEach((layer, index) => {
+      const width = 100 * layer.scale.x;
+      const height = 100 * layer.scale.y;
+      
+      const corners = [
+        project3D(layer.position.x - width/2, layer.position.y + height/2, layer.position.z),
+        project3D(layer.position.x + width/2, layer.position.y + height/2, layer.position.z),
+        project3D(layer.position.x + width/2, layer.position.y - height/2, layer.position.z),
+        project3D(layer.position.x - width/2, layer.position.y - height/2, layer.position.z),
+      ];
+      
+      const isSelected = selectedObject === `layer-${layer.id}`;
+      
+      ctx.strokeStyle = isSelected ? '#fbbf24' : '#8b5cf6';
+      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.fillStyle = '#8b5cf620';
+      
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        if (i === 0) ctx.moveTo(corners[i].x, corners[i].y);
+        else ctx.lineTo(corners[i].x, corners[i].y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      
+      // Draw layer number
+      const centerProj = project3D(layer.position.x, layer.position.y, layer.position.z);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`L${index + 1}`, centerProj.x, centerProj.y);
+    });
+  };
+
+  const draw3DModels = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    cubeParams.models.forEach((model) => {
+      const size = 40;
+      
+      const corners = [
+        project3D(model.position.x - size/2, model.position.y + size/2, model.position.z - size/2),
+        project3D(model.position.x + size/2, model.position.y + size/2, model.position.z - size/2),
+        project3D(model.position.x + size/2, model.position.y - size/2, model.position.z - size/2),
+        project3D(model.position.x - size/2, model.position.y - size/2, model.position.z - size/2),
+        project3D(model.position.x - size/2, model.position.y + size/2, model.position.z + size/2),
+        project3D(model.position.x + size/2, model.position.y + size/2, model.position.z + size/2),
+        project3D(model.position.x + size/2, model.position.y - size/2, model.position.z + size/2),
+        project3D(model.position.x - size/2, model.position.y - size/2, model.position.z + size/2),
+      ];
+      
+      const isSelected = selectedObject === `model-${model.id}`;
+      
+      ctx.strokeStyle = isSelected ? '#fbbf24' : '#10b981';
+      ctx.lineWidth = isSelected ? 3 : 2;
+      
+      // Draw cube wireframe
+      const faces = [
+        [0, 1, 2, 3], [4, 5, 6, 7], // front, back
+        [0, 1, 5, 4], [2, 3, 7, 6], // top, bottom
+        [0, 3, 7, 4], [1, 2, 6, 5]  // left, right
+      ];
+      
+      faces.forEach(face => {
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const corner = corners[face[i]];
+          if (i === 0) ctx.moveTo(corner.x, corner.y);
+          else ctx.lineTo(corner.x, corner.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      });
+      
+      // Draw model label
+      const centerProj = project3D(model.position.x, model.position.y, model.position.z);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('GLB', centerProj.x, centerProj.y);
+    });
   };
 
   const drawObjects = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
@@ -608,6 +930,46 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
       return { x: screenX, y: screenY, z: worldZ };
     };
 
+    // Check floor controls
+    const floorControls = [
+      { name: 'floor-height', point: project3D(0, cubeParams.floor.height - 40, 0) },
+      { name: 'floor-rotation', point: project3D(40, cubeParams.floor.height, 0) },
+      { name: 'floor-tilt', point: project3D(0, cubeParams.floor.height, 40) },
+      { name: 'floor-yaw', point: project3D(-40, cubeParams.floor.height, 0) },
+      { name: 'floor-scale', point: project3D(0, cubeParams.floor.height, -40) },
+    ];
+    
+    for (const control of floorControls) {
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - control.point.x, 2) + Math.pow(mousePos.y - control.point.y, 2)
+      );
+      if (distance <= 20) {
+        return control.name;
+      }
+    }
+    
+    // Check camera frustum
+    if (cubeParams.cameraFrustum.enabled) {
+      const camPosProj = project3D(cubeParams.cameraFrustum.position.x, cubeParams.cameraFrustum.position.y, cubeParams.cameraFrustum.position.z);
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - camPosProj.x, 2) + Math.pow(mousePos.y - camPosProj.y, 2)
+      );
+      if (distance <= 20) {
+        return 'camera-frustum';
+      }
+    }
+    
+    // Check canvas-3D
+    if (cubeParams.canvasTo3D.enabled) {
+      const centerProj = project3D(cubeParams.canvasTo3D.position.x, cubeParams.canvasTo3D.position.y, cubeParams.canvasTo3D.position.z);
+      const distance = Math.sqrt(
+        Math.pow(mousePos.x - centerProj.x, 2) + Math.pow(mousePos.y - centerProj.y, 2)
+      );
+      if (distance <= 20) {
+        return 'canvas-3d';
+      }
+    }
+
     // Check arrow endpoints (larger hit area)
     const arrows = [
       { name: 'front', end: project3D(0, 0, faceOffsets.front + arrowLength) },
@@ -769,68 +1131,113 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
           
           return { ...prev, position: newPosition };
         });
+      } else if (selectedArrow?.startsWith('floor-')) {
+        // Handle floor controls
+        setCubeParams(prev => {
+          if (!prev?.position) return prev;
+          const newFloor = { ...prev.floor };
+          
+          switch (selectedArrow) {
+            case 'floor-height':
+              newFloor.height = prev.floor.height - deltaY * 0.8;
+              break;
+            case 'floor-rotation':
+              newFloor.azimuth = (prev.floor.azimuth + deltaX * 0.5) % 360;
+              break;
+            case 'floor-tilt':
+              newFloor.tilt = Math.max(-45, Math.min(45, prev.floor.tilt + deltaY * 0.3));
+              break;
+            case 'floor-yaw':
+              newFloor.yaw = Math.max(-45, Math.min(45, prev.floor.yaw + deltaX * 0.3));
+              break;
+            case 'floor-scale':
+              newFloor.scale = Math.max(0.5, Math.min(2, prev.floor.scale + deltaY * -0.01));
+              break;
+          }
+          
+          return { ...prev, floor: newFloor };
+        });
+      } else if (selectedArrow === 'camera-frustum') {
+        // Handle camera frustum movement
+        setCubeParams(prev => {
+          if (!prev?.position) return prev;
+          const newFrustum = { ...prev.cameraFrustum };
+          newFrustum.position = {
+            x: prev.cameraFrustum.position.x + deltaX * 0.5,
+            y: prev.cameraFrustum.position.y - deltaY * 0.5,
+            z: prev.cameraFrustum.position.z
+          };
+          return { ...prev, cameraFrustum: newFrustum };
+        });
+      } else if (selectedArrow === 'canvas-3d') {
+        // Handle canvas-3D plane movement
+        setCubeParams(prev => {
+          if (!prev?.position) return prev;
+          const newCanvasTo3D = { ...prev.canvasTo3D };
+          newCanvasTo3D.position = {
+            x: prev.canvasTo3D.position.x + deltaX * 0.5,
+            y: prev.canvasTo3D.position.y - deltaY * 0.5,
+            z: prev.canvasTo3D.position.z
+          };
+          return { ...prev, canvasTo3D: newCanvasTo3D };
+        });
       } else {
-        // Adjust individual face based on arrow drag along its axis
-        const delta = (deltaX - deltaY) * 0.5;
-        
+        // Adjust individual face - FIXED DIRECTIONS
         setCubeParams(prev => {
           if (!prev?.position) return prev;
           const newOffsets = { ...prev.faceOffsets };
           
           // Ctrl modifier: scale entire cube
           if (isCtrlPressed) {
-            const scaleFactor = 1 + (delta * 0.01);
+            const scaleDelta = (deltaX - deltaY) * 0.01;
+            const scaleFactor = 1 + scaleDelta;
             Object.keys(newOffsets).forEach(key => {
               newOffsets[key as keyof typeof newOffsets] = prev.faceOffsets[key as keyof typeof newOffsets] * scaleFactor;
             });
             return { ...prev, faceOffsets: newOffsets };
           }
           
-          // Helper to get mirror face name
-          const getMirrorFace = (face: string): keyof typeof newOffsets | null => {
-            const mirrors: Record<string, keyof typeof newOffsets> = {
-              front: 'back', back: 'front',
-              left: 'right', right: 'left',
-              top: 'bottom', bottom: 'top'
-            };
-            return mirrors[face] || null;
-          };
-          
           switch (selectedArrow) {
             case 'front':
-              newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
+              // Front face: drag right = move forward (positive Z), drag down = move forward
+              newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + deltaX * 0.5 + deltaY * 0.5));
               if (isShiftPressed) {
-                newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
+                newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - deltaX * 0.5 - deltaY * 0.5));
               }
               break;
             case 'back':
-              newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - delta));
+              // Back face: drag left = move backward (more negative Z)
+              newOffsets.back = Math.max(-200, Math.min(-25, prev.faceOffsets.back - deltaX * 0.5 - deltaY * 0.5));
               if (isShiftPressed) {
-                newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + delta));
+                newOffsets.front = Math.max(25, Math.min(200, prev.faceOffsets.front + deltaX * 0.5 + deltaY * 0.5));
               }
               break;
             case 'left':
-              newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
+              // Left face: drag left = move left (more negative X)
+              newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - deltaX * 0.5 - deltaY * 0.5));
               if (isShiftPressed) {
-                newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
+                newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + deltaX * 0.5 + deltaY * 0.5));
               }
               break;
             case 'right':
-              newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + delta));
+              // Right face: drag right = move right (positive X)
+              newOffsets.right = Math.max(25, Math.min(200, prev.faceOffsets.right + deltaX * 0.5 + deltaY * 0.5));
               if (isShiftPressed) {
-                newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - delta));
+                newOffsets.left = Math.max(-200, Math.min(-25, prev.faceOffsets.left - deltaX * 0.5 - deltaY * 0.5));
               }
               break;
             case 'top':
-              newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - delta));
+              // Top face: drag up = move up (positive Y), drag right = move up
+              newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - deltaY * 0.5 + deltaX * 0.5));
               if (isShiftPressed) {
-                newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + delta));
+                newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + deltaY * 0.5 - deltaX * 0.5));
               }
               break;
             case 'bottom':
-              newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + delta));
+              // Bottom face: drag down = move down (more negative Y)
+              newOffsets.bottom = Math.max(-200, Math.min(-25, prev.faceOffsets.bottom + deltaY * 0.5 - deltaX * 0.5));
               if (isShiftPressed) {
-                newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - delta));
+                newOffsets.top = Math.max(25, Math.min(200, prev.faceOffsets.top - deltaY * 0.5 + deltaX * 0.5));
               }
               break;
           }

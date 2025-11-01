@@ -14,6 +14,9 @@ export const MainEditor = () => {
   const [overlayMode, setOverlayMode] = useState("grid focus");
   const [show3DCube, setShow3DCube] = useState(false);
   const [cubeParams, setCubeParams] = useState<CubeParams | null>(null);
+  const [showSketch, setShowSketch] = useState(false);
+  const [showCanvasTo3D, setShowCanvasTo3D] = useState(false);
+  const [showCameraFrustum, setShowCameraFrustum] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedPixels] = useState<Set<number>>(new Set());
 
@@ -53,6 +56,9 @@ export const MainEditor = () => {
               show3DCube={show3DCube}
               cubeParams={cubeParams}
               onCubeParamsChange={setCubeParams}
+              showSketch={showSketch}
+              showCanvasTo3D={showCanvasTo3D}
+              showCameraFrustum={showCameraFrustum}
             />
           </div>
         </div>
@@ -68,6 +74,12 @@ export const MainEditor = () => {
           onOverlayModeChange={setOverlayMode}
           show3DCube={show3DCube}
           onShow3DCubeToggle={setShow3DCube}
+          showSketch={showSketch}
+          onShowSketchToggle={setShowSketch}
+          showCanvasTo3D={showCanvasTo3D}
+          onShowCanvasTo3DToggle={setShowCanvasTo3D}
+          showCameraFrustum={showCameraFrustum}
+          onShowCameraFrustumToggle={setShowCameraFrustum}
           cubeParams={cubeParams}
           onCubeParamsChange={setCubeParams}
           canvasRef={canvasRef}
