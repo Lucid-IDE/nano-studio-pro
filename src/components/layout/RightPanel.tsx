@@ -20,9 +20,12 @@ import {
   ToggleLeft,
   ToggleRight,
   Scissors,
-  Video
+  Video,
+  FolderOpen
 } from "lucide-react";
 import { AdvancedSegmentation } from "./AdvancedSegmentation";
+import { LayersPanel } from "./LayersPanel";
+import { AssetsPanel } from "./AssetsPanel";
 
 interface RightPanelProps {
   zoomLevel: number;
@@ -102,7 +105,8 @@ export const RightPanel = ({
     { id: "segmentation", icon: Scissors, name: "AI Segmentation", color: "text-destructive" },
     { id: "ai", icon: Zap, name: "Nano Banana", color: "text-purple-500" },
     { id: "video", icon: Video, name: "Video Gen", color: "text-blue-500" },
-    { id: "layers", icon: Layers3, name: "Layers", color: "text-camera-accent" },
+    { id: "layers", icon: Layers3, name: "Layers", color: "text-green-500" },
+    { id: "assets", icon: FolderOpen, name: "Assets", color: "text-orange-500" },
     { id: "advanced", icon: Settings2, name: "Advanced", color: "text-muted-foreground" },
   ];
 
@@ -881,14 +885,15 @@ export const RightPanel = ({
               />
             </TabsContent>
             
-            <TabsContent value="layers" className="mt-0 space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Layers3 className="h-5 w-5 text-camera-accent" />
-                <h3 className="text-lg font-semibold">Layers</h3>
-              </div>
-              <div className="text-center text-muted-foreground">
-                Layer management coming soon...
-              </div>
+            <TabsContent value="layers" className="mt-0 h-full">
+              <LayersPanel 
+                cubeParams={cubeParams}
+                onCubeParamsChange={onCubeParamsChange}
+              />
+            </TabsContent>
+            
+            <TabsContent value="assets" className="mt-0 h-full">
+              <AssetsPanel />
             </TabsContent>
             
             <TabsContent value="advanced" className="mt-0 space-y-4">

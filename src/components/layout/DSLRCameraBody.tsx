@@ -360,72 +360,6 @@ export const DSLRCameraBody = ({
 
             <div className="w-px h-12 bg-camera-metal/40"></div>
 
-            {/* Overlay Controls */}
-            <div className="flex items-center space-x-2">
-              <Button
-                size="sm"
-                variant={showGrid ? "default" : "ghost"}
-                onClick={() => onGridToggle(!showGrid)}
-                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-                title="Toggle Grid Overlay"
-              >
-                <Grid3x3 className="h-4 w-4 mr-1" />
-                Grid
-              </Button>
-              <Button
-                size="sm"
-                variant={showOverlay ? "default" : "ghost"}
-                onClick={() => onOverlayToggle(!showOverlay)}
-                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-                title="Toggle LCD Overlay"
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                LCD
-              </Button>
-              <Button
-                size="sm"
-                variant={show3DCube ? "default" : "ghost"}
-                onClick={() => onShow3DCubeToggle(!show3DCube)}
-                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-                title="Toggle 3D Guide"
-              >
-                <Box className="h-4 w-4 mr-1" />
-                3D
-              </Button>
-              <Button
-                size="sm"
-                variant={showSketch ? "default" : "ghost"}
-                onClick={() => onShowSketchToggle(!showSketch)}
-                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-                title="Toggle Sketch Overlay"
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                Sketch
-              </Button>
-              <Button
-                size="sm"
-                variant={showCanvasTo3D ? "default" : "ghost"}
-                onClick={() => onShowCanvasTo3DToggle(!showCanvasTo3D)}
-                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-                title="Convert Canvas to 3D"
-              >
-                <Image className="h-4 w-4 mr-1" />
-                Canvas3D
-              </Button>
-              <Button
-                size="sm"
-                variant={showCameraFrustum ? "default" : "ghost"}
-                onClick={() => onShowCameraFrustumToggle(!showCameraFrustum)}
-                className="h-9 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30"
-                title="Toggle Camera Frustum"
-              >
-                <CircleDot className="h-4 w-4 mr-1" />
-                Camera
-              </Button>
-            </div>
-
-            <div className="w-px h-12 bg-camera-metal/40"></div>
-
             {/* Status Indicators */}
             <div className="flex flex-col items-end space-y-1">
               <div className="flex items-center space-x-1">
@@ -449,6 +383,72 @@ export const DSLRCameraBody = ({
               </Button>
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-success rounded-full shadow-glow animate-pulse"></div>
             </div>
+          </div>
+        </div>
+
+        {/* Second Row: Overlay Controls */}
+        <div className="flex justify-center items-center space-x-2 px-4 pb-2">
+          <div className="flex items-center space-x-2 bg-gradient-to-r from-camera-metal/10 via-camera-metal/20 to-camera-metal/10 px-4 py-2 rounded-xl shadow-3d-inset border border-camera-metal/40">
+            <Button
+              size="sm"
+              variant={showGrid ? "default" : "ghost"}
+              onClick={() => onGridToggle(!showGrid)}
+              className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs"
+              title="Toggle Grid Overlay"
+            >
+              <Grid3x3 className="h-3 w-3 mr-1" />
+              Grid
+            </Button>
+            <Button
+              size="sm"
+              variant={showOverlay ? "default" : "ghost"}
+              onClick={() => onOverlayToggle(!showOverlay)}
+              className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs"
+              title="Toggle LCD Overlay"
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              LCD
+            </Button>
+            <Button
+              size="sm"
+              variant={show3DCube ? "default" : "ghost"}
+              onClick={() => onShow3DCubeToggle(!show3DCube)}
+              className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs"
+              title="Toggle 3D Guide"
+            >
+              <Box className="h-3 w-3 mr-1" />
+              3D
+            </Button>
+            <Button
+              size="sm"
+              variant={showSketch ? "default" : "ghost"}
+              onClick={() => onShowSketchToggle(!showSketch)}
+              className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs"
+              title="Toggle Sketch Overlay"
+            >
+              <Pencil className="h-3 w-3 mr-1" />
+              Sketch
+            </Button>
+            <Button
+              size="sm"
+              variant={showCanvasTo3D ? "default" : "ghost"}
+              onClick={() => onShowCanvasTo3DToggle(!showCanvasTo3D)}
+              className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs"
+              title="Convert Canvas to 3D"
+            >
+              <Image className="h-3 w-3 mr-1" />
+              Canvas3D
+            </Button>
+            <Button
+              size="sm"
+              variant={showCameraFrustum ? "default" : "ghost"}
+              onClick={() => onShowCameraFrustumToggle(!showCameraFrustum)}
+              className="h-8 px-3 bg-gradient-button-3d shadow-3d-button border border-camera-metal/30 text-xs"
+              title="Toggle Camera Frustum"
+            >
+              <CircleDot className="h-3 w-3 mr-1" />
+              Camera
+            </Button>
           </div>
         </div>
 

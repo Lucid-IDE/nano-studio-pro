@@ -35,6 +35,7 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
     const internalCanvasRef = useRef<HTMLCanvasElement>(null);
     const [hasImage, setHasImage] = useState(false);
     const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
+    const [isRightMouseDown, setIsRightMouseDown] = useState(false);
 
     // Expose the canvas ref to parent
     useImperativeHandle(ref, () => internalCanvasRef.current!);
@@ -206,7 +207,28 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
     };
 
     return (
-      <div className="relative w-full h-full bg-canvas-bg">
+      <div 
+        className="relative w-full h-full bg-canvas-bg"
+        onMouseDown={(e) => {
+          if (e.button === 2) { // Right mouse button
+            e.preventDefault();
+            setIsRightMouseDown(true);
+          }
+        }}
+        onMouseUp={(e) => {
+          if (e.button === 2) {
+            setIsRightMouseDown(false);
+          }
+        }}
+        onWheel={(e) => {
+          if (isRightMouseDown) {
+            e.preventDefault();
+            // Right-click + scroll zoom behavior would be handled by parent
+            // For now, just prevent default scrolling
+          }
+        }}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         {/* Canvas */}
         <canvas
           ref={internalCanvasRef}
