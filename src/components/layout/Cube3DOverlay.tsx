@@ -382,13 +382,15 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
 
   const drawFloor = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
     const { floor } = cubeParams;
-    const size = 300 * floor.scale;
-    const gridSpacing = 50 * floor.scale;
+    if (!floor) return;
+    
+    const size = 300 * (floor.scale || 1);
+    const gridSpacing = 50 * (floor.scale || 1);
     
     // Apply azimuth, tilt, and yaw rotations
-    const azimuthRad = (floor.azimuth * Math.PI) / 180;
-    const tiltRad = (floor.tilt * Math.PI) / 180;
-    const yawRad = (floor.yaw * Math.PI) / 180;
+    const azimuthRad = ((floor.azimuth || 0) * Math.PI) / 180;
+    const tiltRad = ((floor.tilt || 0) * Math.PI) / 180;
+    const yawRad = ((floor.yaw || 0) * Math.PI) / 180;
     
     // Draw grid
     ctx.strokeStyle = floor.color + '40';
@@ -420,6 +422,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
 
   const drawFloorControls = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
     const { floor } = cubeParams;
+    if (!floor) return;
     
     // Floor center position
     const centerPos = project3D(0, floor.height, 0);
@@ -484,6 +487,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
 
   const drawCameraFrustum = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
     const { cameraFrustum } = cubeParams;
+    if (!cameraFrustum || !cameraFrustum.enabled) return;
     
     // Calculate frustum corners
     const halfHeightNear = cameraFrustum.nearPlane * Math.tan((cameraFrustum.fov * Math.PI) / 360);
@@ -552,6 +556,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
 
   const drawCanvasPlane = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
     const { canvasTo3D } = cubeParams;
+    if (!canvasTo3D || !canvasTo3D.enabled) return;
+    
     const width = 200 * canvasTo3D.scale;
     const height = 150 * canvasTo3D.scale;
     
@@ -588,6 +594,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
   };
 
   const draw3DLayers = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    if (!cubeParams.layers3D) return;
     cubeParams.layers3D.forEach((layer, index) => {
       const width = 100 * layer.scale.x;
       const height = 100 * layer.scale.y;
@@ -624,6 +631,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
   };
 
   const draw3DModels = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
+    if (!cubeParams.models) return;
     cubeParams.models.forEach((model) => {
       const size = 40;
       
@@ -931,25 +939,27 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
     };
 
     // Check floor controls
-    const floorControls = [
-      { name: 'floor-height', point: project3D(0, cubeParams.floor.height - 40, 0) },
-      { name: 'floor-rotation', point: project3D(40, cubeParams.floor.height, 0) },
-      { name: 'floor-tilt', point: project3D(0, cubeParams.floor.height, 40) },
-      { name: 'floor-yaw', point: project3D(-40, cubeParams.floor.height, 0) },
-      { name: 'floor-scale', point: project3D(0, cubeParams.floor.height, -40) },
-    ];
-    
-    for (const control of floorControls) {
-      const distance = Math.sqrt(
-        Math.pow(mousePos.x - control.point.x, 2) + Math.pow(mousePos.y - control.point.y, 2)
-      );
-      if (distance <= 20) {
-        return control.name;
+    if (cubeParams.floor) {
+      const floorControls = [
+        { name: 'floor-height', point: project3D(0, cubeParams.floor.height - 40, 0) },
+        { name: 'floor-rotation', point: project3D(40, cubeParams.floor.height, 0) },
+        { name: 'floor-tilt', point: project3D(0, cubeParams.floor.height, 40) },
+        { name: 'floor-yaw', point: project3D(-40, cubeParams.floor.height, 0) },
+        { name: 'floor-scale', point: project3D(0, cubeParams.floor.height, -40) },
+      ];
+      
+      for (const control of floorControls) {
+        const distance = Math.sqrt(
+          Math.pow(mousePos.x - control.point.x, 2) + Math.pow(mousePos.y - control.point.y, 2)
+        );
+        if (distance <= 20) {
+          return control.name;
+        }
       }
     }
     
     // Check camera frustum
-    if (cubeParams.cameraFrustum.enabled) {
+    if (cubeParams.cameraFrustum?.enabled) {
       const camPosProj = project3D(cubeParams.cameraFrustum.position.x, cubeParams.cameraFrustum.position.y, cubeParams.cameraFrustum.position.z);
       const distance = Math.sqrt(
         Math.pow(mousePos.x - camPosProj.x, 2) + Math.pow(mousePos.y - camPosProj.y, 2)
@@ -960,7 +970,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
     }
     
     // Check canvas-3D
-    if (cubeParams.canvasTo3D.enabled) {
+    if (cubeParams.canvasTo3D?.enabled) {
       const centerProj = project3D(cubeParams.canvasTo3D.position.x, cubeParams.canvasTo3D.position.y, cubeParams.canvasTo3D.position.z);
       const distance = Math.sqrt(
         Math.pow(mousePos.x - centerProj.x, 2) + Math.pow(mousePos.y - centerProj.y, 2)
@@ -1131,10 +1141,10 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
           
           return { ...prev, position: newPosition };
         });
-      } else if (selectedArrow?.startsWith('floor-')) {
+      } else if (selectedArrow?.startsWith('floor-') && cubeParams.floor) {
         // Handle floor controls
         setCubeParams(prev => {
-          if (!prev?.position) return prev;
+          if (!prev?.position || !prev.floor) return prev;
           const newFloor = { ...prev.floor };
           
           switch (selectedArrow) {
@@ -1142,25 +1152,25 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
               newFloor.height = prev.floor.height - deltaY * 0.8;
               break;
             case 'floor-rotation':
-              newFloor.azimuth = (prev.floor.azimuth + deltaX * 0.5) % 360;
+              newFloor.azimuth = ((prev.floor.azimuth || 0) + deltaX * 0.5) % 360;
               break;
             case 'floor-tilt':
-              newFloor.tilt = Math.max(-45, Math.min(45, prev.floor.tilt + deltaY * 0.3));
+              newFloor.tilt = Math.max(-45, Math.min(45, (prev.floor.tilt || 0) + deltaY * 0.3));
               break;
             case 'floor-yaw':
-              newFloor.yaw = Math.max(-45, Math.min(45, prev.floor.yaw + deltaX * 0.3));
+              newFloor.yaw = Math.max(-45, Math.min(45, (prev.floor.yaw || 0) + deltaX * 0.3));
               break;
             case 'floor-scale':
-              newFloor.scale = Math.max(0.5, Math.min(2, prev.floor.scale + deltaY * -0.01));
+              newFloor.scale = Math.max(0.5, Math.min(2, (prev.floor.scale || 1) + deltaY * -0.01));
               break;
           }
           
           return { ...prev, floor: newFloor };
         });
-      } else if (selectedArrow === 'camera-frustum') {
+      } else if (selectedArrow === 'camera-frustum' && cubeParams.cameraFrustum) {
         // Handle camera frustum movement
         setCubeParams(prev => {
-          if (!prev?.position) return prev;
+          if (!prev?.position || !prev.cameraFrustum) return prev;
           const newFrustum = { ...prev.cameraFrustum };
           newFrustum.position = {
             x: prev.cameraFrustum.position.x + deltaX * 0.5,
@@ -1169,10 +1179,10 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
           };
           return { ...prev, cameraFrustum: newFrustum };
         });
-      } else if (selectedArrow === 'canvas-3d') {
+      } else if (selectedArrow === 'canvas-3d' && cubeParams.canvasTo3D) {
         // Handle canvas-3D plane movement
         setCubeParams(prev => {
-          if (!prev?.position) return prev;
+          if (!prev?.position || !prev.canvasTo3D) return prev;
           const newCanvasTo3D = { ...prev.canvasTo3D };
           newCanvasTo3D.position = {
             x: prev.canvasTo3D.position.x + deltaX * 0.5,
