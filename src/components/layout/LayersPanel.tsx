@@ -34,10 +34,12 @@ interface Layer {
 interface LayersPanelProps {
   cubeParams?: any;
   onCubeParamsChange?: (params: any) => void;
+  layers?: Layer[];
+  onLayersChange?: (layers: Layer[]) => void;
 }
 
-export const LayersPanel = ({ cubeParams, onCubeParamsChange }: LayersPanelProps) => {
-  const [layers, setLayers] = useState<Layer[]>([
+export const LayersPanel = ({ cubeParams, onCubeParamsChange, layers: externalLayers, onLayersChange: externalOnLayersChange }: LayersPanelProps) => {
+  const [internalLayers, setInternalLayers] = useState<Layer[]>([
     { 
       id: 'layer-1', 
       name: 'Background', 
@@ -47,6 +49,9 @@ export const LayersPanel = ({ cubeParams, onCubeParamsChange }: LayersPanelProps
       opacity: 100 
     }
   ]);
+  
+  const layers = externalLayers || internalLayers;
+  const setLayers = externalOnLayersChange || setInternalLayers;
   const [selectedLayerId, setSelectedLayerId] = useState<string>('layer-1');
   const [expanded2D, setExpanded2D] = useState(true);
   const [expanded3D, setExpanded3D] = useState(true);

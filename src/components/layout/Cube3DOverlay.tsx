@@ -596,6 +596,8 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
   const draw3DLayers = (ctx: CanvasRenderingContext2D, project3D: (x: number, y: number, z: number) => { x: number; y: number; z: number }) => {
     if (!cubeParams.layers3D) return;
     cubeParams.layers3D.forEach((layer, index) => {
+      if (!layer.imageUrl) return;
+      
       const width = 100 * layer.scale.x;
       const height = 100 * layer.scale.y;
       
@@ -608,25 +610,62 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
       
       const isSelected = selectedObject === `layer-${layer.id}`;
       
-      ctx.strokeStyle = isSelected ? '#fbbf24' : '#8b5cf6';
-      ctx.lineWidth = isSelected ? 3 : 2;
-      ctx.fillStyle = '#8b5cf620';
-      
-      ctx.beginPath();
-      for (let i = 0; i < 4; i++) {
-        if (i === 0) ctx.moveTo(corners[i].x, corners[i].y);
-        else ctx.lineTo(corners[i].x, corners[i].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      
-      // Draw layer number
-      const centerProj = project3D(layer.position.x, layer.position.y, layer.position.z);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`L${index + 1}`, centerProj.x, centerProj.y);
+      // Create a temporary image element for this layer if it has an imageUrl
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        ctx.save();
+        
+        // Define the quad path
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        ctx.lineTo(corners[1].x, corners[1].y);
+        ctx.lineTo(corners[2].x, corners[2].y);
+        ctx.lineTo(corners[3].x, corners[3].y);
+        ctx.closePath();
+        ctx.clip();
+        
+        // Calculate perspective transform approximation
+        // For simplicity, we'll use a basic approach - draw centered
+        const centerProj = project3D(layer.position.x, layer.position.y, layer.position.z);
+        const imgWidth = width * 2;
+        const imgHeight = height * 2;
+        
+        try {
+          ctx.drawImage(
+            img,
+            centerProj.x - imgWidth/2,
+            centerProj.y - imgHeight/2,
+            imgWidth,
+            imgHeight
+          );
+        } catch (e) {
+          console.error('Failed to draw 3D layer image:', e);
+        }
+        
+        ctx.restore();
+        
+        // Draw border
+        ctx.strokeStyle = isSelected ? '#fbbf24' : '#8b5cf6';
+        ctx.lineWidth = isSelected ? 3 : 2;
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        ctx.lineTo(corners[1].x, corners[1].y);
+        ctx.lineTo(corners[2].x, corners[2].y);
+        ctx.lineTo(corners[3].x, corners[3].y);
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Draw layer label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(`Layer ${index + 1}`, centerProj.x, centerProj.y - imgHeight/2 - 10);
+        ctx.fillText(`Layer ${index + 1}`, centerProj.x, centerProj.y - imgHeight/2 - 10);
+      };
+      img.src = layer.imageUrl;
     });
   };
 
@@ -1293,6 +1332,7 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
         hoveredArrow !== null || selectedArrow !== null ? 'cursor-pointer' : 
         dragMode === 'position' ? 'cursor-move' : 'cursor-grab'
       } ${isDragging && dragMode === 'rotate' ? 'active:cursor-grabbing' : ''}`}
+      style={{ background: 'transparent' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

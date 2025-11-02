@@ -19,6 +19,19 @@ import { DSLRCameraBody } from "./DSLRCameraBody";
 import { VideoTimeline } from "./VideoTimeline";
 import nanoBananaLogo from "@/assets/nano-banana-logo.png";
 
+export interface Layer {
+  id: string;
+  name: string;
+  type: '2d' | '3d';
+  visible: boolean;
+  locked: boolean;
+  opacity: number;
+  imageUrl?: string;
+  position3D?: { x: number; y: number; z: number };
+  rotation3D?: { x: number; y: number; z: number };
+  scale3D?: { x: number; y: number };
+}
+
 export const EditorLayout = () => {
   const [activeTab, setActiveTab] = useState("editor");
   const [showTimeline, setShowTimeline] = useState(true);
@@ -33,6 +46,16 @@ export const EditorLayout = () => {
   const [iso, setIso] = useState(400);
   const [shutterSpeed, setShutterSpeed] = useState(125);
   const [exposure, setExposure] = useState(0);
+  const [layers, setLayers] = useState<Layer[]>([
+    { 
+      id: 'layer-1', 
+      name: 'Background', 
+      type: '2d', 
+      visible: true, 
+      locked: false, 
+      opacity: 100 
+    }
+  ]);
 
   return (
     <DSLRCameraBody 
@@ -82,6 +105,8 @@ export const EditorLayout = () => {
                 onShowCanvasTo3DToggle={setShowCanvasTo3D}
                 showCameraFrustum={showCameraFrustum}
                 onShowCameraFrustumToggle={setShowCameraFrustum}
+                layers={layers}
+                onLayersChange={setLayers}
               />
             </TabsContent>
             <TabsContent value="composer" className="flex-1 m-0">

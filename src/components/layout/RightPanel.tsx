@@ -50,6 +50,8 @@ interface RightPanelProps {
   canvasRef?: React.RefObject<HTMLCanvasElement>;
   selectedPixels?: Set<number>;
   onImageGenerated?: (imageUrl: string) => void;
+  layers?: any[];
+  onLayersChange?: (layers: any[]) => void;
 }
 
 export const RightPanel = ({ 
@@ -74,7 +76,9 @@ export const RightPanel = ({
   onCubeParamsChange,
   canvasRef,
   selectedPixels,
-  onImageGenerated
+  onImageGenerated,
+  layers = [],
+  onLayersChange = () => {}
 }: RightPanelProps) => {
   const [activePanel, setActivePanel] = useState("camera");
   
@@ -889,6 +893,8 @@ export const RightPanel = ({
               <LayersPanel 
                 cubeParams={cubeParams}
                 onCubeParamsChange={onCubeParamsChange}
+                layers={layers}
+                onLayersChange={onLayersChange}
               />
             </TabsContent>
             

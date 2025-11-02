@@ -16,6 +16,7 @@ interface CanvasProps {
   showSketch?: boolean;
   showCanvasTo3D?: boolean;
   showCameraFrustum?: boolean;
+  layers?: any[];
 }
 
 const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
@@ -31,6 +32,7 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
     showSketch = false,
     showCanvasTo3D = false,
     showCameraFrustum = false,
+    layers = [],
   }, ref) => {
     const internalCanvasRef = useRef<HTMLCanvasElement>(null);
     const [hasImage, setHasImage] = useState(false);
@@ -57,6 +59,27 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
       // Clear canvas
       ctx.fillStyle = "hsl(var(--canvas-bg))";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw 2D layers
+      layers.filter(l => l.type === '2d' && l.visible && l.imageUrl).forEach(layer => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.8;
+          const width = img.width * scale;
+          const height = img.height * scale;
+          const x = (canvas.width - width) / 2;
+          const y = (canvas.height - height) / 2;
+          
+          ctx.globalAlpha = layer.opacity / 100;
+          try {
+            ctx.drawImage(img, x, y, width, height);
+          } catch (e) {
+            console.error('Failed to draw layer image:', e);
+          }
+          ctx.globalAlpha = 1;
+        };
+        img.src = layer.imageUrl;
+      });
 
       // Draw image if present (fit to canvas, keep aspect)
       if (hasImage && currentImage) {
@@ -113,7 +136,7 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
       ctx.stroke();
 
       ctx.globalAlpha = 1;
-    }, [showGrid, zoomLevel, hasImage, currentImage]);
+    }, [showGrid, zoomLevel, hasImage, currentImage, layers]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];

@@ -5,6 +5,7 @@ import { RightPanel } from "./RightPanel";
 import { VideoTimeline } from "./VideoTimeline";
 import { CameraViewfinder } from "./CameraViewfinder";
 import { CubeParams } from "./Cube3DOverlay";
+import { Layer } from "./EditorLayout";
 
 interface MainEditorProps {
   showGrid?: boolean;
@@ -21,6 +22,8 @@ interface MainEditorProps {
   onShowCanvasTo3DToggle?: (show: boolean) => void;
   showCameraFrustum?: boolean;
   onShowCameraFrustumToggle?: (show: boolean) => void;
+  layers?: Layer[];
+  onLayersChange?: (layers: Layer[]) => void;
 }
 
 export const MainEditor = ({
@@ -38,6 +41,8 @@ export const MainEditor = ({
   onShowCanvasTo3DToggle = () => {},
   showCameraFrustum = false,
   onShowCameraFrustumToggle = () => {},
+  layers = [],
+  onLayersChange = () => {},
 }: MainEditorProps) => {
   const [activeTool, setActiveTool] = useState<string>("select");
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -78,6 +83,7 @@ export const MainEditor = ({
               showSketch={showSketch}
               showCanvasTo3D={showCanvasTo3D}
               showCameraFrustum={showCameraFrustum}
+              layers={layers}
             />
           </div>
         </div>
@@ -104,6 +110,8 @@ export const MainEditor = ({
           canvasRef={canvasRef}
           selectedPixels={selectedPixels}
           onImageGenerated={handleImageGenerated}
+          layers={layers}
+          onLayersChange={onLayersChange}
         />
       </div>
     </div>
