@@ -6,25 +6,44 @@ import { VideoTimeline } from "./VideoTimeline";
 import { CameraViewfinder } from "./CameraViewfinder";
 import { CubeParams } from "./Cube3DOverlay";
 
-export const MainEditor = () => {
+interface MainEditorProps {
+  showGrid?: boolean;
+  onGridToggle?: (show: boolean) => void;
+  showOverlay?: boolean;
+  onOverlayToggle?: (show: boolean) => void;
+  overlayMode?: string;
+  onOverlayModeChange?: (mode: string) => void;
+  show3DCube?: boolean;
+  onShow3DCubeToggle?: (show: boolean) => void;
+  showSketch?: boolean;
+  onShowSketchToggle?: (show: boolean) => void;
+  showCanvasTo3D?: boolean;
+  onShowCanvasTo3DToggle?: (show: boolean) => void;
+  showCameraFrustum?: boolean;
+  onShowCameraFrustumToggle?: (show: boolean) => void;
+}
+
+export const MainEditor = ({
+  showGrid = false,
+  onGridToggle = () => {},
+  showOverlay = true,
+  onOverlayToggle = () => {},
+  overlayMode = "grid focus",
+  onOverlayModeChange = () => {},
+  show3DCube = false,
+  onShow3DCubeToggle = () => {},
+  showSketch = false,
+  onShowSketchToggle = () => {},
+  showCanvasTo3D = false,
+  onShowCanvasTo3DToggle = () => {},
+  showCameraFrustum = false,
+  onShowCameraFrustumToggle = () => {},
+}: MainEditorProps) => {
   const [activeTool, setActiveTool] = useState<string>("select");
-  const [showGrid, setShowGrid] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [showOverlay, setShowOverlay] = useState(true);
-  const [overlayMode, setOverlayMode] = useState("grid focus");
-  const [show3DCube, setShow3DCube] = useState(false);
   const [cubeParams, setCubeParams] = useState<CubeParams | null>(null);
-  const [showSketch, setShowSketch] = useState(false);
-  const [showCanvasTo3D, setShowCanvasTo3D] = useState(false);
-  const [showCameraFrustum, setShowCameraFrustum] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedPixels] = useState<Set<number>>(new Set());
-
-  // Camera settings for 3D dials
-  const [aperture, setAperture] = useState(2.8);
-  const [iso, setIso] = useState(400);
-  const [shutterSpeed, setShutterSpeed] = useState(125);
-  const [exposure, setExposure] = useState(0);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     // Trigger the hidden file input in Canvas
@@ -67,19 +86,19 @@ export const MainEditor = () => {
           zoomLevel={zoomLevel}
           onZoomChange={setZoomLevel}
           showGrid={showGrid}
-          onGridToggle={setShowGrid}
+          onGridToggle={onGridToggle}
           showOverlay={showOverlay}
-          onOverlayToggle={setShowOverlay}
+          onOverlayToggle={onOverlayToggle}
           overlayMode={overlayMode}
-          onOverlayModeChange={setOverlayMode}
+          onOverlayModeChange={onOverlayModeChange}
           show3DCube={show3DCube}
-          onShow3DCubeToggle={setShow3DCube}
+          onShow3DCubeToggle={onShow3DCubeToggle}
           showSketch={showSketch}
-          onShowSketchToggle={setShowSketch}
+          onShowSketchToggle={onShowSketchToggle}
           showCanvasTo3D={showCanvasTo3D}
-          onShowCanvasTo3DToggle={setShowCanvasTo3D}
+          onShowCanvasTo3DToggle={onShowCanvasTo3DToggle}
           showCameraFrustum={showCameraFrustum}
-          onShowCameraFrustumToggle={setShowCameraFrustum}
+          onShowCameraFrustumToggle={onShowCameraFrustumToggle}
           cubeParams={cubeParams}
           onCubeParamsChange={setCubeParams}
           canvasRef={canvasRef}

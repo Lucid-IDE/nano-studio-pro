@@ -10,7 +10,8 @@ import {
   Square,
   Circle,
   Type,
-  Eraser
+  Eraser,
+  Upload
 } from "lucide-react";
 
 interface ToolSidebarProps {
@@ -33,8 +34,28 @@ const tools = [
 ];
 
 export const ToolSidebar = ({ activeTool, onToolChange }: ToolSidebarProps) => {
+  const handleUploadClick = () => {
+    const fileInput = document.getElementById('canvas-file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
   return (
     <div className="w-16 bg-panel border-r border-border flex flex-col items-center py-4 space-y-2">
+      {/* Upload Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-12 h-12 p-0 rounded-lg transition-all duration-200 group relative hover:bg-control-hover text-tool-inactive hover:text-foreground hover:scale-105 mb-4"
+        onClick={handleUploadClick}
+        title="Upload - Load image or 3D model"
+      >
+        <Upload className="h-5 w-5 transition-all duration-200 group-hover:scale-105" />
+      </Button>
+
+      <div className="w-full h-px bg-border/50" />
+      
       {tools.map((tool) => {
         const Icon = tool.icon;
         const isActive = activeTool === tool.id;

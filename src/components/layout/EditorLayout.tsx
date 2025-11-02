@@ -67,7 +67,22 @@ export const EditorLayout = () => {
         <div className="flex-1 flex overflow-hidden">
           <Tabs value={activeTab} className="flex-1 flex flex-col">
             <TabsContent value="editor" className="flex-1 m-0">
-              <MainEditor />
+              <MainEditor 
+                showGrid={showGrid}
+                onGridToggle={setShowGrid}
+                showOverlay={showOverlay}
+                onOverlayToggle={setShowOverlay}
+                overlayMode={overlayMode}
+                onOverlayModeChange={setOverlayMode}
+                show3DCube={show3DCube}
+                onShow3DCubeToggle={setShow3DCube}
+                showSketch={showSketch}
+                onShowSketchToggle={setShowSketch}
+                showCanvasTo3D={showCanvasTo3D}
+                onShowCanvasTo3DToggle={setShowCanvasTo3D}
+                showCameraFrustum={showCameraFrustum}
+                onShowCameraFrustumToggle={setShowCameraFrustum}
+              />
             </TabsContent>
             <TabsContent value="composer" className="flex-1 m-0">
               <ElementComposer />

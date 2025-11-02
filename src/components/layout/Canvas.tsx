@@ -257,11 +257,11 @@ const CanvasComponent = forwardRef<HTMLCanvasElement, CanvasProps>(
           </div>
         )}
 
-        {/* Hidden file input for top bar button */}
+        {/* Hidden file input */}
         <input
           id="canvas-file-upload"
           type="file"
-          accept="image/*"
+          accept="image/*,.glb,.gltf"
           className="hidden"
           onChange={handleFileUpload}
         />
