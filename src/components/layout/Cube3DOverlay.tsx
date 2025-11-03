@@ -616,29 +616,78 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
       img.onload = () => {
         ctx.save();
         
-        // Define the quad path
-        ctx.beginPath();
-        ctx.moveTo(corners[0].x, corners[0].y);
-        ctx.lineTo(corners[1].x, corners[1].y);
-        ctx.lineTo(corners[2].x, corners[2].y);
-        ctx.lineTo(corners[3].x, corners[3].y);
-        ctx.closePath();
-        ctx.clip();
-        
-        // Calculate perspective transform approximation
-        // For simplicity, we'll use a basic approach - draw centered
-        const centerProj = project3D(layer.position.x, layer.position.y, layer.position.z);
-        const imgWidth = width * 2;
-        const imgHeight = height * 2;
-        
         try {
-          ctx.drawImage(
-            img,
-            centerProj.x - imgWidth/2,
-            centerProj.y - imgHeight/2,
-            imgWidth,
-            imgHeight
-          );
+          // Draw image as texture on perspective quad using subdivision
+          // This creates a more accurate 3D texture mapping effect
+          const subdivisions = 8; // Higher = more accurate but slower
+          
+          for (let row = 0; row < subdivisions; row++) {
+            for (let col = 0; col < subdivisions; col++) {
+              const u0 = col / subdivisions;
+              const v0 = row / subdivisions;
+              const u1 = (col + 1) / subdivisions;
+              const v1 = (row + 1) / subdivisions;
+              
+              // Interpolate corners with perspective correction
+              const tl = {
+                x: corners[0].x * (1 - u0) * (1 - v0) + corners[1].x * u0 * (1 - v0) + 
+                   corners[3].x * (1 - u0) * v0 + corners[2].x * u0 * v0,
+                y: corners[0].y * (1 - u0) * (1 - v0) + corners[1].y * u0 * (1 - v0) + 
+                   corners[3].y * (1 - u0) * v0 + corners[2].y * u0 * v0
+              };
+              const tr = {
+                x: corners[0].x * (1 - u1) * (1 - v0) + corners[1].x * u1 * (1 - v0) + 
+                   corners[3].x * (1 - u1) * v0 + corners[2].x * u1 * v0,
+                y: corners[0].y * (1 - u1) * (1 - v0) + corners[1].y * u1 * (1 - v0) + 
+                   corners[3].y * (1 - u1) * v0 + corners[2].y * u1 * v0
+              };
+              const br = {
+                x: corners[0].x * (1 - u1) * (1 - v1) + corners[1].x * u1 * (1 - v1) + 
+                   corners[3].x * (1 - u1) * v1 + corners[2].x * u1 * v1,
+                y: corners[0].y * (1 - u1) * (1 - v1) + corners[1].y * u1 * (1 - v1) + 
+                   corners[3].y * (1 - u1) * v1 + corners[2].y * u1 * v1
+              };
+              const bl = {
+                x: corners[0].x * (1 - u0) * (1 - v1) + corners[1].x * u0 * (1 - v1) + 
+                   corners[3].x * (1 - u0) * v1 + corners[2].x * u0 * v1,
+                y: corners[0].y * (1 - u0) * (1 - v1) + corners[1].y * u0 * (1 - v1) + 
+                   corners[3].y * (1 - u0) * v1 + corners[2].y * u0 * v1
+              };
+              
+              // Calculate transform matrix for this subdivision quad
+              const dx1 = tr.x - tl.x;
+              const dy1 = tr.y - tl.y;
+              const dx2 = bl.x - tl.x;
+              const dy2 = bl.y - tl.y;
+              
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(tl.x, tl.y);
+              ctx.lineTo(tr.x, tr.y);
+              ctx.lineTo(br.x, br.y);
+              ctx.lineTo(bl.x, bl.y);
+              ctx.closePath();
+              ctx.clip();
+              
+              // Apply affine transform for this subdivision
+              ctx.setTransform(
+                dx1, dy1,
+                dx2, dy2,
+                tl.x, tl.y
+              );
+              
+              // Draw the corresponding portion of the image
+              ctx.drawImage(
+                img,
+                u0 * img.width, v0 * img.height,
+                (u1 - u0) * img.width, (v1 - v0) * img.height,
+                0, 0,
+                1, 1
+              );
+              
+              ctx.restore();
+            }
+          }
         } catch (e) {
           console.error('Failed to draw 3D layer image:', e);
         }
@@ -657,13 +706,15 @@ export const Cube3DOverlay = ({ showCube, onCubeChange, cubeParams: externalCube
         ctx.stroke();
         
         // Draw layer label
+        const centerProj = project3D(layer.position.x, layer.position.y, layer.position.z);
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 3;
-        ctx.strokeText(`Layer ${index + 1}`, centerProj.x, centerProj.y - imgHeight/2 - 10);
-        ctx.fillText(`Layer ${index + 1}`, centerProj.x, centerProj.y - imgHeight/2 - 10);
+        const labelY = Math.min(corners[0].y, corners[1].y) - 10;
+        ctx.strokeText(`Layer ${index + 1}`, centerProj.x, labelY);
+        ctx.fillText(`Layer ${index + 1}`, centerProj.x, labelY);
       };
       img.src = layer.imageUrl;
     });
